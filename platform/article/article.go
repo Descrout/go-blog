@@ -2,16 +2,8 @@ package article
 
 import (
 	"database/sql"
-	"fmt"
+	"log"
 )
-
-type Getter interface {
-	GetAll() []Article
-}
-
-type Adder interface {
-	Add(article Article)
-}
 
 type Article struct {
 	ID      int    `json: "id"`
@@ -26,21 +18,7 @@ type Repo struct {
 	DB *sql.DB
 }
 
-func New(db *sql.DB) *Repo {
-	stmt, err := db.Prepare(`CREATE TABLE IF NOT EXISTS "articles" (
-		"ID"	INTEGER NOT NULL UNIQUE,
-		"USER_ID"	INTEGER NOT NULL,
-		"author"	TEXT NOT NULL,
-		"title"	TEXT NOT NULL,
-		"body"	TEXT NOT NULL,
-		"date"	TEXT NOT NULL,
-		PRIMARY KEY("ID" AUTOINCREMENT)
-	);`)
-	if err != nil {
-		panic(err.Error())
-	}
-	stmt.Exec()
-
+func NewRepo(db *sql.DB) *Repo {
 	return &Repo{
 		DB: db,
 	}
@@ -51,27 +29,40 @@ func (repo *Repo) Add(article Article) {
 	INSERT INTO 
 	articles (USER_ID, author, title, body, date) 
 	values (?, ?, ?, ?, ?)`)
-
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
+	defer stmt.Close()
 	stmt.Exec(article.USER_ID, article.Author, article.Title, article.Body, article.Date)
+}
+
+func (repo *Repo) GetByID(id string) (*Article, error) {
+	article := &Article{}
+	stmt, err := repo.DB.Prepare("SELECT * FROM articles WHERE ID = ?")
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer stmt.Close()
+	err = stmt.QueryRow(id).Scan(&article.ID, &article.USER_ID, &article.Author,
+		&article.Title, &article.Body, &article.Date)
+	if err != nil {
+		log.Println(err)
+	}
+	return article, err
 }
 
 func (repo *Repo) GetAll() []Article {
 	articles := []Article{}
-
 	rows, err := repo.DB.Query(`SELECT * FROM articles`)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
-
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.USER_ID, &article.Author,
 			&article.Title, &article.Body, &article.Date)
 		articles = append(articles, article)
 	}
-
 	return articles
 }
