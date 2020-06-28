@@ -38,7 +38,7 @@ func main() {
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
-		w.Write([]byte("You page is in another castle."))
+		w.Write([]byte("Your page is in another castle."))
 	})
 
 	r.Route("/articles", func(r chi.Router) {
