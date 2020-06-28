@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"go-blog/platform/article"
 	"net/http"
 
@@ -16,30 +16,36 @@ const RepoKey key = 0
 const ArticleKey key = 1
 
 func ArticleGetByID(w http.ResponseWriter, r *http.Request) {
-	article := r.Context().Value(ArticleKey).(*article.Article)
-	json.NewEncoder(w).Encode(article)
+	article_temp := r.Context().Value(ArticleKey).(*article.Article)
+	render.Render(w, r, article.NewArticlePayload(article_temp))
 }
 
 func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
 	repo := r.Context().Value(RepoKey).(*article.Repo)
 	articles := repo.GetAll()
-	json.NewEncoder(w).Encode(articles)
+	//json.NewEncoder(w).Encode(articles)
+	render.RenderList(w, r, article.NewArticleListPayload(articles))
 }
 
 func ArticlePost(w http.ResponseWriter, r *http.Request) {
+	data := &article.ArticlePayload{}
+	if err := render.Bind(r, data); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	article_temp := data.Article
+
+	fmt.Println(article_temp)
+
 	repo := r.Context().Value(RepoKey).(*article.Repo)
-	request := map[string]string{}
-	json.NewDecoder(r.Body).Decode(&request)
-	repo.Add(article.Article{
-		User_ID: 0, //change later
-		Title:   request["title"],
-		Body:    request["body"],
-		Date:    "00.00.00", //change later
-	})
-	w.Write([]byte("Article added!"))
+	repo.Add(article_temp)
+
+	render.Status(r, http.StatusCreated)
+	render.Render(w, r, data) //returning data has id of 0, change later when you figure out how to get back id
 }
 
-func ArticleIDCtx(next http.Handler) http.Handler {
+func ArticleIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.Context().Value(RepoKey).(*article.Repo)
 		var article *article.Article

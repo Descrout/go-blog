@@ -51,7 +51,7 @@ func main() {
 
 		// Subrouters:
 		r.Route("/{articleID}", func(r chi.Router) {
-			r.Use(handler.ArticleIDCtx)
+			r.Use(handler.ArticleIDContext)
 			r.Get("/", handler.ArticleGetByID)
 			//r.Put("/", updateArticle)
 			//r.Delete("/", deleteArticle)

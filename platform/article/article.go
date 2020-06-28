@@ -1,67 +1,48 @@
 package article
 
 import (
-	"database/sql"
-	"log"
+	"errors"
+	"net/http"
+
+	"github.com/go-chi/render"
 )
 
 type Article struct {
-	ID      int    `json: "id"`
-	User_ID int    `json: "user_id"`
-	Title   string `json: "title"`
-	Body    string `json: "body"`
-	Date    string `json: "date"`
+	ID      int    `json:"id"`
+	User_ID int    `json:"user_id"`
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Date    string `json:"date"`
 }
 
-type Repo struct {
-	DB *sql.DB
+type ArticlePayload struct {
+	*Article
+	//add user payload later
 }
 
-func NewRepo(db *sql.DB) *Repo {
-	return &Repo{
-		DB: db,
-	}
+func NewArticlePayload(article *Article) *ArticlePayload {
+	return &ArticlePayload{Article: article}
 }
 
-func (repo *Repo) Add(article Article) {
-	stmt, err := repo.DB.Prepare(`
-	INSERT INTO 
-	articles (user_id,  title, body, date) 
-	values (?, ?, ?, ?)`)
-	if err != nil {
-		log.Println(err)
+func NewArticleListPayload(articles []*Article) []render.Renderer {
+	list := []render.Renderer{}
+	for _, article := range articles {
+		list = append(list, NewArticlePayload(article))
 	}
-	defer stmt.Close()
-	stmt.Exec(article.User_ID, article.Title, article.Body, article.Date)
+	return list
 }
 
-func (repo *Repo) GetByID(id string) (*Article, error) {
-	article := &Article{}
-	stmt, err := repo.DB.Prepare("SELECT * FROM articles WHERE ID = ?")
-	if err != nil {
-		log.Println(err)
-		return nil, err
+func (a *ArticlePayload) Bind(r *http.Request) error {
+	//do stuff on payload after 'receive and decode' but before binding data
+	if a.Article == nil {
+		return errors.New("missing required Article fields.")
 	}
-	defer stmt.Close()
-	err = stmt.QueryRow(id).Scan(&article.ID, &article.User_ID,
-		&article.Title, &article.Body, &article.Date)
-	if err != nil {
-		log.Println(err)
-	}
-	return article, err
+	a.Date = "00.00.00" // will change to server time later
+	a.User_ID = 0       //will change to actual user
+	return nil
 }
 
-func (repo *Repo) GetAll() []Article {
-	articles := []Article{}
-	rows, err := repo.DB.Query(`SELECT * FROM articles`)
-	if err != nil {
-		log.Println(err)
-	}
-	for rows.Next() {
-		var article Article
-		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Body, &article.Date)
-		articles = append(articles, article)
-	}
-	return articles
+func (a *ArticlePayload) Render(w http.ResponseWriter, r *http.Request) error {
+	//do stuff on payload before send
+	return nil
 }
