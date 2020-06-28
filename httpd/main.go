@@ -36,6 +36,11 @@ func main() {
 		w.Write([]byte("TODO"))
 	})
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		w.Write([]byte("You page is in another castle."))
+	})
+
 	r.Route("/articles", func(r chi.Router) {
 		r.Use(ProvideArticlesRepo(db))
 		r.Get("/", handler.ArticleGetAll)

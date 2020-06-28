@@ -27,7 +27,7 @@ func (repo *Repo) Add(article Article) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
 	articles (user_id,  title, body, date) 
-	values (?, ?, ?, ?, ?)`)
+	values (?, ?, ?, ?)`)
 	if err != nil {
 		log.Println(err)
 	}
