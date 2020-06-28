@@ -31,8 +31,7 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 	request := map[string]string{}
 	json.NewDecoder(r.Body).Decode(&request)
 	repo.Add(article.Article{
-		USER_ID: 0,      //change later
-		Author:  "todo", //change later
+		User_ID: 0, //change later
 		Title:   request["title"],
 		Body:    request["body"],
 		Date:    "00.00.00", //change later

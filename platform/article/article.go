@@ -7,8 +7,7 @@ import (
 
 type Article struct {
 	ID      int    `json: "id"`
-	USER_ID int    `json: "user_id"`
-	Author  string `json: "author"`
+	User_ID int    `json: "user_id"`
 	Title   string `json: "title"`
 	Body    string `json: "body"`
 	Date    string `json: "date"`
@@ -27,13 +26,13 @@ func NewRepo(db *sql.DB) *Repo {
 func (repo *Repo) Add(article Article) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
-	articles (USER_ID, author, title, body, date) 
+	articles (user_id,  title, body, date) 
 	values (?, ?, ?, ?, ?)`)
 	if err != nil {
 		log.Println(err)
 	}
 	defer stmt.Close()
-	stmt.Exec(article.USER_ID, article.Author, article.Title, article.Body, article.Date)
+	stmt.Exec(article.User_ID, article.Title, article.Body, article.Date)
 }
 
 func (repo *Repo) GetByID(id string) (*Article, error) {
@@ -44,7 +43,7 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 		return nil, err
 	}
 	defer stmt.Close()
-	err = stmt.QueryRow(id).Scan(&article.ID, &article.USER_ID, &article.Author,
+	err = stmt.QueryRow(id).Scan(&article.ID, &article.User_ID,
 		&article.Title, &article.Body, &article.Date)
 	if err != nil {
 		log.Println(err)
@@ -60,7 +59,7 @@ func (repo *Repo) GetAll() []Article {
 	}
 	for rows.Next() {
 		var article Article
-		rows.Scan(&article.ID, &article.USER_ID, &article.Author,
+		rows.Scan(&article.ID, &article.User_ID,
 			&article.Title, &article.Body, &article.Date)
 		articles = append(articles, article)
 	}

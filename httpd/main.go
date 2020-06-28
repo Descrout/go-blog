@@ -73,9 +73,8 @@ func setupDB(filename string) *sql.DB {
 		log.Fatal(err)
 	}
 	stmt, err := db.Prepare(`CREATE TABLE IF NOT EXISTS "articles" (
-		"ID"	INTEGER NOT NULL UNIQUE,
-		"USER_ID"	INTEGER NOT NULL,
-		"author"	TEXT NOT NULL,
+		"id"	INTEGER NOT NULL UNIQUE,
+		"user_id"	INTEGER NOT NULL,
 		"title"	TEXT NOT NULL,
 		"body"	TEXT NOT NULL,
 		"date"	TEXT NOT NULL,
