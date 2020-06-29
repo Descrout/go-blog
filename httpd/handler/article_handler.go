@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"go-blog/platform/article"
 	"net/http"
 
@@ -36,13 +35,17 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 
 	article_temp := data.Article
 
-	fmt.Println(article_temp)
-
 	repo := r.Context().Value(RepoKey).(*article.Repo)
-	repo.Add(article_temp)
+
+	if id, err := repo.Add(article_temp); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	} else {
+		data.Article.ID = id
+	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, data) //returning data has id of 0, change later when you figure out how to get back id
+	render.Render(w, r, data)
 }
 
 func ArticleIDContext(next http.Handler) http.Handler {

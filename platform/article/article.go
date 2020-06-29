@@ -8,8 +8,8 @@ import (
 )
 
 type Article struct {
-	ID      int    `json:"id"`
-	User_ID int    `json:"user_id"`
+	ID      int64  `json:"id"`
+	User_ID int64  `json:"user_id"`
 	Title   string `json:"title"`
 	Body    string `json:"body"`
 	Date    string `json:"date"`

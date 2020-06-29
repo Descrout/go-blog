@@ -15,7 +15,7 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
-func (repo *Repo) Add(article *Article) {
+func (repo *Repo) Add(article *Article) (int64, error) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
 	articles (user_id,  title, body, date) 
@@ -23,11 +23,23 @@ func (repo *Repo) Add(article *Article) {
 
 	if err != nil {
 		log.Println(err)
+		return 0, err
 	}
 
 	defer stmt.Close()
 
-	stmt.Exec(article.User_ID, article.Title, article.Body, article.Date) // check this for returning id
+	result, err := stmt.Exec(article.User_ID, article.Title, article.Body, article.Date)
+	if err != nil {
+		log.Println(err)
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Println(err)
+	}
+
+	return id, err
 }
 
 func (repo *Repo) GetByID(id string) (*Article, error) {

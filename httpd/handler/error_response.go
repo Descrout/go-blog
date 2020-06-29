@@ -25,6 +25,14 @@ func ErrInvalidRequest(err error) render.Renderer {
 	}
 }
 
+func ErrInternal(err error) render.Renderer {
+	return &ErrResponse{
+		HTTPStatusCode: 500,
+		StatusText:     "Internal Server Error",
+		ErrorText:      err.Error(),
+	}
+}
+
 func ErrRender(err error) render.Renderer {
 	return &ErrResponse{
 		HTTPStatusCode: 422,
