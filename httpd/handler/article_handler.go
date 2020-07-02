@@ -14,15 +14,48 @@ type key int
 const RepoKey key = 0
 const ArticleKey key = 1
 
+func ArticleDelete(w http.ResponseWriter, r *http.Request) {
+	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
+	repo := r.Context().Value(RepoKey).(*article.Repo)
+
+	if err := repo.Delete(articleTemp.ID); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, article.NewArticlePayload(articleTemp))
+}
+
+func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
+	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
+	articlePayload := article.NewArticlePayload(articleTemp)
+
+	if err := render.Bind(r, articlePayload); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	articleTemp = articlePayload.Article
+	repo := r.Context().Value(RepoKey).(*article.Repo)
+
+	if err := repo.Update(articleTemp); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, article.NewArticlePayload(articleTemp))
+}
+
 func ArticleGetByID(w http.ResponseWriter, r *http.Request) {
-	article_temp := r.Context().Value(ArticleKey).(*article.Article)
-	render.Render(w, r, article.NewArticlePayload(article_temp))
+	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
+	render.Render(w, r, article.NewArticlePayload(articleTemp))
 }
 
 func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
 	repo := r.Context().Value(RepoKey).(*article.Repo)
 	articles := repo.GetAll()
-	//json.NewEncoder(w).Encode(articles)
 	render.RenderList(w, r, article.NewArticleListPayload(articles))
 }
 
@@ -33,11 +66,11 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	article_temp := data.Article
+	articleTemp := data.Article
 
 	repo := r.Context().Value(RepoKey).(*article.Repo)
 
-	if id, err := repo.Add(article_temp); err != nil {
+	if id, err := repo.Add(articleTemp); err != nil {
 		render.Render(w, r, ErrInternal(err))
 		return
 	} else {

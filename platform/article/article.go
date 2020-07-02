@@ -3,6 +3,7 @@ package article
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/render"
 )
@@ -37,8 +38,9 @@ func (a *ArticlePayload) Bind(r *http.Request) error {
 	if a.Article == nil {
 		return errors.New("missing required Article fields.")
 	}
-	a.Date = "00.00.00" // will change to server time later
-	a.User_ID = 0       //will change to actual user
+
+	a.Date = time.Now().Format("02-01-2006")
+	a.User_ID = 0 //will change to actual user
 	return nil
 }
 

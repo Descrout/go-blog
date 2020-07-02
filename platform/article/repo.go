@@ -15,6 +15,44 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
+func (repo *Repo) Delete(id int64) error {
+	stmt, err := repo.DB.Prepare("DELETE FROM articles WHERE id = ?")
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(id); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (repo *Repo) Update(article *Article) error {
+	stmt, err := repo.DB.Prepare("UPDATE articles SET title = ?, body = ?, date = ? WHERE id = ?")
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(article.Title, article.Body, article.Date, article.ID)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 func (repo *Repo) Add(article *Article) (int64, error) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
