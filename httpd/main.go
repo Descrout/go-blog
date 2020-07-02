@@ -1,17 +1,16 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"go-blog/httpd/handler"
-	"go-blog/platform/article"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/jwtauth"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -23,6 +22,8 @@ const (
 func main() {
 	db := setupDB(dbName)
 	defer db.Close()
+
+	tokenAuth := jwtauth.New("HS256", []byte("secret"), nil)
 
 	r := chi.NewRouter()
 
@@ -41,36 +42,28 @@ func main() {
 		w.Write([]byte("Your page is in another castle."))
 	})
 
-	r.Route("/articles", func(r chi.Router) {
-		r.Use(ProvideArticlesRepo(db))
-		r.Get("/", handler.ArticleGetAll)
-		//r.Get("/{month}-{day}-{year}", listArticlesByDate)
+	r.Route("/api", func(r chi.Router) {
+		r.Use(handler.ProvideDatabase(db))
+		r.Use(jwtauth.Verifier(tokenAuth))
+		// _, tokenString, _ := tokenAuth.Encode(jwt.MapClaims{"user_id": 123}) //creating token
+		//_, claims, _ := jwtauth.FromContext(r.Context()) // getting the token - claims["user_id"]
+		r.Route("/articles", func(r chi.Router) {
+			r.Get("/", handler.ArticleGetAll)
+			//r.Get("/{month}-{day}-{year}", listArticlesByDate)
+			//r.Get("/search", searchArticles)
+			r.With(jwtauth.Authenticator).Post("/", handler.ArticlePost)
 
-		r.Post("/", handler.ArticlePost)
-		//r.Get("/search", searchArticles)
-
-		// Subrouters:
-		r.Route("/{articleID}", func(r chi.Router) {
-			r.Use(handler.ArticleIDContext)
-
-			r.Get("/", handler.ArticleGetByID)
-			r.Put("/", handler.ArticleUpdate)
-			r.Delete("/", handler.ArticleDelete)
+			r.Route("/{articleID}", func(r chi.Router) {
+				r.Use(handler.ArticleIDContext)
+				r.Get("/", handler.ArticleGetByID)
+				r.With(jwtauth.Authenticator).Put("/", handler.ArticleUpdate)
+				r.With(jwtauth.Authenticator).Delete("/", handler.ArticleDelete)
+			})
 		})
 	})
 
 	fmt.Println("Serving on port " + port)
 	http.ListenAndServe(port, r)
-}
-
-func ProvideArticlesRepo(db *sql.DB) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			repo := article.NewRepo(db)
-			ctx := context.WithValue(r.Context(), handler.RepoKey, repo)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
 }
 
 func setupDB(filename string) *sql.DB {

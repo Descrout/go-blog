@@ -1,4 +1,4 @@
-package handler
+package errors
 
 import (
 	"net/http"
@@ -42,3 +42,4 @@ func ErrRender(err error) render.Renderer {
 }
 
 var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
+var ErrUnauthorized = &ErrResponse{HTTPStatusCode: 401, StatusText: "Unauthorized."}
