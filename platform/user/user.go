@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"go-blog/platform/role"
 	"net/http"
 	"regexp"
 
@@ -23,16 +24,24 @@ type User struct {
 
 type UserPayload struct {
 	*User
+	Role  *role.RolePayload `json:"role"`
+	Token string            `json:"token,omitempty"`
 }
 
-func NewUserPayload(user *User) *UserPayload {
-	return &UserPayload{User: user}
+func NewUserPayload(user *User, roleRepo *role.Repo) *UserPayload {
+	uPayload := &UserPayload{User: user}
+	if uPayload.Role == nil && roleRepo != nil {
+		if roleTemp, err := roleRepo.GetByID(user.Role_ID); err == nil {
+			uPayload.Role = role.NewRolePayload(roleTemp)
+		}
+	}
+	return uPayload
 }
 
-func NewUserListPayload(users []*User) []render.Renderer {
+func NewUserListPayload(users []*User, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, user := range users {
-		list = append(list, NewUserPayload(user))
+		list = append(list, NewUserPayload(user, roleRepo))
 	}
 	return list
 }
@@ -42,6 +51,7 @@ func (u *UserPayload) Bind(r *http.Request) error {
 	if u.User == nil {
 		return errors.New("missing required User fields.")
 	}
+	u.Token = ""
 	return nil
 }
 

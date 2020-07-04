@@ -6,6 +6,7 @@ import (
 	"errors"
 	"go-blog/platform/article"
 	errs "go-blog/platform/errors"
+	"go-blog/platform/role"
 	"go-blog/platform/user"
 	"net/http"
 
@@ -17,14 +18,27 @@ type key int
 
 const ArticleRepoKey key = 0
 const ArticleKey key = 1
+
 const UserRepoKey key = 2
 const UserKey key = 3
+
+const RoleRepoKey key = 4
 
 func ProvideArticleRepo(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			repo := article.NewRepo(db)
 			ctx := context.WithValue(r.Context(), ArticleRepoKey, repo)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func ProvideRoleRepo(db *sql.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			repo := role.NewRepo(db)
+			ctx := context.WithValue(r.Context(), RoleRepoKey, repo)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

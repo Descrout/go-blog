@@ -49,12 +49,13 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(handler.ProvideUserRepo(db))
+		r.Use(handler.ProvideRoleRepo(db))
 
 		r.Route("/login", func(r chi.Router) {
 			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("TODO-Login-Page"))
 			})
-			//r.Post("/", handler.UserLoginPost)
+			r.Post("/", handler.UserLoginPost(tokenAuth))
 		})
 
 		r.Route("/register", func(r chi.Router) {
@@ -98,11 +99,11 @@ func setupDB(filename string) *sql.DB {
 	}
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS "users" (
 		"id"	INTEGER NOT NULL UNIQUE,
-		"role_id"	INTEGER NOT NULL DEFAULT 0,
+		"role_id"	INTEGER NOT NULL DEFAULT 1,
 		"name"	TEXT NOT NULL,
 		"password"	TEXT NOT NULL,
 		"email" TEXT NOT NULL,
-		"image"	TEXT,
+		"image"	TEXT NOT NULL DEFAULT "./user.png",
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
 	CREATE TABLE IF NOT EXISTS "roles" (
@@ -126,7 +127,10 @@ func setupDB(filename string) *sql.DB {
 		"body"	TEXT,
 		"date"	TEXT,
 		PRIMARY KEY("id" AUTOINCREMENT)
-	);`)
+	);
+	INSERT INTO roles (name, code) values ("Guest", 0);
+	INSERT INTO roles (name, code) values ("Author", 0);
+	INSERT INTO roles (name, code) values ("Admin", 0);`)
 
 	if err != nil {
 		log.Fatal(err)

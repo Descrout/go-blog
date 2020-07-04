@@ -95,6 +95,29 @@ func (repo *Repo) Add(user *User) (int64, error) {
 	return id, err
 }
 
+func (repo *Repo) GetByEmail(email string) (*User, error) {
+	user := &User{}
+
+	stmt, err := repo.DB.Prepare("SELECT * FROM users WHERE email = ?")
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	err = stmt.QueryRow(email).Scan(
+		&user.ID, &user.Role_ID, &user.Name, &user.Password,
+		&user.Email, &user.Image)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return user, err
+}
+
 func (repo *Repo) GetByID(id string) (*User, error) {
 	user := &User{}
 
@@ -113,6 +136,7 @@ func (repo *Repo) GetByID(id string) (*User, error) {
 
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	return user, err
