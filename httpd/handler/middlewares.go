@@ -3,19 +3,38 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"go-blog/platform/article"
-	"go-blog/platform/errors"
+	errs "go-blog/platform/errors"
+	"go-blog/platform/user"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 )
 
-func ProvideDatabase(db *sql.DB) func(http.Handler) http.Handler {
+type key int
+
+const ArticleRepoKey key = 0
+const ArticleKey key = 1
+const UserRepoKey key = 2
+const UserKey key = 3
+
+func ProvideArticleRepo(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			repo := article.NewRepo(db)
-			ctx := context.WithValue(r.Context(), RepoKey, repo)
+			ctx := context.WithValue(r.Context(), ArticleRepoKey, repo)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func ProvideUserRepo(db *sql.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			repo := user.NewRepo(db)
+			ctx := context.WithValue(r.Context(), UserRepoKey, repo)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -23,18 +42,18 @@ func ProvideDatabase(db *sql.DB) func(http.Handler) http.Handler {
 
 func ArticleIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		repo := r.Context().Value(RepoKey).(*article.Repo)
+		repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 		var article *article.Article
 		var err error
 
 		if articleID := chi.URLParam(r, "articleID"); articleID != "" {
 			article, err = repo.GetByID(articleID)
 		} else {
-			render.Render(w, r, errors.ErrNotFound)
+			render.Render(w, r, errs.ErrInvalidRequest(errors.New("missing article ID")))
 			return
 		}
 		if err != nil {
-			render.Render(w, r, errors.ErrNotFound)
+			render.Render(w, r, errs.ErrNotFound)
 			return
 		}
 

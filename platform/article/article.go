@@ -2,6 +2,7 @@ package article
 
 import (
 	"errors"
+	"go-blog/platform/user"
 	"net/http"
 	"time"
 
@@ -10,19 +11,21 @@ import (
 
 type Article struct {
 	ID      int64  `json:"id"`
-	User_ID int64  `json:"user_id"`
+	User_ID int64  `json:"user_id,omitempty"`
 	Title   string `json:"title"`
 	Body    string `json:"body"`
-	Date    string `json:"date"`
+	Date    int64  `json:"date"`
 }
 
 type ArticlePayload struct {
 	*Article
-	//add user payload later
+	User *user.UserPayload `json:"user"`
 }
 
 func NewArticlePayload(article *Article) *ArticlePayload {
-	return &ArticlePayload{Article: article}
+	payload := &ArticlePayload{Article: article}
+	//TODO User payloading
+	return payload
 }
 
 func NewArticleListPayload(articles []*Article) []render.Renderer {
@@ -38,13 +41,13 @@ func (a *ArticlePayload) Bind(r *http.Request) error {
 	if a.Article == nil {
 		return errors.New("missing required Article fields.")
 	}
-
-	a.Date = time.Now().Format("02-01-2006")
-	a.User_ID = 0 //will change to actual user
+	a.Date = time.Now().Unix()
 	return nil
 }
 
 func (a *ArticlePayload) Render(w http.ResponseWriter, r *http.Request) error {
 	//do stuff on payload before send
+
+	a.User_ID = 0 // we set id to 0 so we won't send the id (we already include the user)
 	return nil
 }

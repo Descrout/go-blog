@@ -9,5 +9,6 @@ require (
 	github.com/go-chi/jwtauth v4.0.4+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
 )

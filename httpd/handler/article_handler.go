@@ -8,14 +8,9 @@ import (
 	"github.com/go-chi/render"
 )
 
-type key int
-
-const RepoKey key = 0
-const ArticleKey key = 1
-
 func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
-	repo := r.Context().Value(RepoKey).(*article.Repo)
+	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 
 	if err := repo.Delete(articleTemp.ID); err != nil {
 		render.Render(w, r, errors.ErrInvalidRequest(err))
@@ -36,7 +31,7 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	articleTemp = articlePayload.Article
-	repo := r.Context().Value(RepoKey).(*article.Repo)
+	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 
 	if err := repo.Update(articleTemp); err != nil {
 		render.Render(w, r, errors.ErrInternal(err))
@@ -53,7 +48,7 @@ func ArticleGetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
-	repo := r.Context().Value(RepoKey).(*article.Repo)
+	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	articles := repo.GetAll()
 	render.RenderList(w, r, article.NewArticleListPayload(articles))
 }
@@ -67,7 +62,7 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 
 	articleTemp := data.Article
 
-	repo := r.Context().Value(RepoKey).(*article.Repo)
+	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 
 	if id, err := repo.Add(articleTemp); err != nil {
 		render.Render(w, r, errors.ErrInternal(err))

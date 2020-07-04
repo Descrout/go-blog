@@ -97,6 +97,7 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	return article, err
