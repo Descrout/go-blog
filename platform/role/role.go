@@ -7,10 +7,24 @@ import (
 	"github.com/go-chi/render"
 )
 
+const (
+	Empty                  = 0
+	CanComment             = 1
+	CanPostArticle         = 2
+	CanManageOtherComments = 4
+	CanManageOtherArticle  = 8
+	CanManageRole          = 16
+	CanAssignRole          = 32
+)
+
 type Role struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 	Code int64  `json:"code"`
+}
+
+func (role *Role) Check(action int64) bool {
+	return role.Code|action == role.Code
 }
 
 type RolePayload struct {

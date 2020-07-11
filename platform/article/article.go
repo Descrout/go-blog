@@ -2,6 +2,7 @@ package article
 
 import (
 	"errors"
+	"go-blog/platform/role"
 	"go-blog/platform/user"
 	"net/http"
 	"time"
@@ -22,16 +23,20 @@ type ArticlePayload struct {
 	User *user.UserPayload `json:"user,omitempty"`
 }
 
-func NewArticlePayload(article *Article) *ArticlePayload {
+func NewArticlePayload(article *Article, userRepo *user.Repo, roleRepo *role.Repo) *ArticlePayload {
 	payload := &ArticlePayload{Article: article}
-	//TODO User payloading
+	if payload.User == nil && userRepo != nil {
+		if userTemp, err := userRepo.GetByID(article.User_ID); err == nil {
+			payload.User = user.NewUserPayload(userTemp, roleRepo)
+		}
+	}
 	return payload
 }
 
-func NewArticleListPayload(articles []*Article) []render.Renderer {
+func NewArticleListPayload(articles []*Article, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, article := range articles {
-		list = append(list, NewArticlePayload(article))
+		list = append(list, NewArticlePayload(article, userRepo, roleRepo))
 	}
 	return list
 }

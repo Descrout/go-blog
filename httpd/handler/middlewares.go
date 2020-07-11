@@ -16,13 +16,13 @@ import (
 
 type key int
 
-const ArticleRepoKey key = 0
-const ArticleKey key = 1
-
-const UserRepoKey key = 2
-const UserKey key = 3
-
-const RoleRepoKey key = 4
+const (
+	ArticleRepoKey key = 0
+	ArticleKey     key = 1
+	UserRepoKey    key = 2
+	UserKey        key = 3
+	RoleRepoKey    key = 4
+)
 
 func ProvideArticleRepo(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

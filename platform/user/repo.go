@@ -118,7 +118,7 @@ func (repo *Repo) GetByEmail(email string) (*User, error) {
 	return user, err
 }
 
-func (repo *Repo) GetByID(id string) (*User, error) {
+func (repo *Repo) GetByID(id int64) (*User, error) {
 	user := &User{}
 
 	stmt, err := repo.DB.Prepare("SELECT * FROM users WHERE id = ?")

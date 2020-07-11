@@ -50,7 +50,6 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(handler.ProvideUserRepo(db))
 		r.Use(handler.ProvideRoleRepo(db))
-
 		r.Route("/login", func(r chi.Router) {
 			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("TODO-Login-Page"))
@@ -64,14 +63,14 @@ func main() {
 			})
 			r.Post("/", handler.UserRegisterPost)
 		})
-
 	})
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(handler.ProvideArticleRepo(db))
+		r.Use(handler.ProvideUserRepo(db))
+		r.Use(handler.ProvideRoleRepo(db))
+
 		r.Use(jwtauth.Verifier(tokenAuth))
-		// _, tokenString, _ := tokenAuth.Encode(jwt.MapClaims{"user_id": 123}) //creating token
-		//_, claims, _ := jwtauth.FromContext(r.Context()) // getting the token - claims["user_id"]
 
 		r.Route("/articles", func(r chi.Router) {
 			r.Get("/", handler.ArticleGetAll)
@@ -108,8 +107,8 @@ func setupDB(filename string) *sql.DB {
 	);
 	CREATE TABLE IF NOT EXISTS "roles" (
 		"id"	INTEGER NOT NULL UNIQUE,
-		"name"	TEXT,
-		"code"	INTEGER,
+		"name"	TEXT NOT NULL,
+		"code"	INTEGER NOT NULL DEFAULT 1,
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
 	CREATE TABLE IF NOT EXISTS "articles" (
@@ -128,9 +127,9 @@ func setupDB(filename string) *sql.DB {
 		"date"	TEXT,
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
-	INSERT INTO roles (name, code) values ("Guest", 0);
-	INSERT INTO roles (name, code) values ("Author", 0);
-	INSERT INTO roles (name, code) values ("Admin", 0);`)
+	INSERT INTO roles (name) values ("Guest");
+	INSERT INTO roles (name) values ("Author");
+	INSERT INTO roles (name) values ("Admin");`)
 
 	if err != nil {
 		log.Fatal(err)

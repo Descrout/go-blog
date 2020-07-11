@@ -3,54 +3,89 @@ package handler
 import (
 	"go-blog/platform/article"
 	"go-blog/platform/errors"
+	"go-blog/platform/role"
+	"go-blog/platform/user"
 	"net/http"
 
+	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 )
 
 func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
-	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
-	if err := repo.Delete(articleTemp.ID); err != nil {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	if err != nil {
+		render.Render(w, r, errors.ErrUnauthorized("Incorrect token."))
+		return
+	}
+
+	if articleTemp.User_ID != int64(claims["user_id"].(float64)) && !tempRole.Check(role.CanManageOtherArticle) {
+		render.Render(w, r, errors.ErrUnauthorized("You are not the author."))
+		return
+	}
+
+	if err := articleRepo.Delete(articleTemp.ID); err != nil {
 		render.Render(w, r, errors.ErrInvalidRequest(err))
 		return
 	}
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, article.NewArticlePayload(articleTemp))
+	render.Render(w, r, article.NewArticlePayload(articleTemp, userRepo, roleRepo))
 }
 
 func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
-	articlePayload := article.NewArticlePayload(articleTemp)
+	articlePayload := article.NewArticlePayload(articleTemp, nil, nil)
 
 	if err := render.Bind(r, articlePayload); err != nil {
 		render.Render(w, r, errors.ErrInvalidRequest(err))
 		return
 	}
-
 	articleTemp = articlePayload.Article
-	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 
-	if err := repo.Update(articleTemp); err != nil {
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	if err != nil {
+		render.Render(w, r, errors.ErrUnauthorized("Incorrect token."))
+		return
+	}
+
+	if articleTemp.User_ID != int64(claims["user_id"].(float64)) && !tempRole.Check(role.CanManageOtherArticle) {
+		render.Render(w, r, errors.ErrUnauthorized("You are not the author."))
+		return
+	}
+
+	if err := articleRepo.Update(articleTemp); err != nil {
 		render.Render(w, r, errors.ErrInternal(err))
 		return
 	}
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, article.NewArticlePayload(articleTemp))
+	render.Render(w, r, article.NewArticlePayload(articleTemp, userRepo, roleRepo))
 }
 
 func ArticleGetByID(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
-	render.Render(w, r, article.NewArticlePayload(articleTemp))
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	render.Render(w, r, article.NewArticlePayload(articleTemp, userRepo, roleRepo))
 }
 
 func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
-	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
-	articles := repo.GetAll()
-	render.RenderList(w, r, article.NewArticleListPayload(articles))
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	articles := articleRepo.GetAll()
+	render.RenderList(w, r, article.NewArticleListPayload(articles, userRepo, roleRepo))
 }
 
 func ArticlePost(w http.ResponseWriter, r *http.Request) {
@@ -62,15 +97,30 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 
 	articleTemp := data.Article
 
-	repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
-	if id, err := repo.Add(articleTemp); err != nil {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	articleTemp.User_ID = int64(claims["user_id"].(float64))
+	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	if err != nil {
+		render.Render(w, r, errors.ErrUnauthorized("Incorrect token."))
+		return
+	}
+
+	if !tempRole.Check(role.CanPostArticle) {
+		render.Render(w, r, errors.ErrUnauthorized("You don't have enough authority to post an article."))
+		return
+	}
+
+	if id, err := articleRepo.Add(articleTemp); err != nil {
 		render.Render(w, r, errors.ErrInternal(err))
 		return
 	} else {
-		data.Article.ID = id
+		articleTemp.ID = id
 	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, data)
+	render.Render(w, r, article.NewArticlePayload(data.Article, userRepo, roleRepo))
 }

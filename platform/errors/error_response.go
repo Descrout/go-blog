@@ -49,5 +49,12 @@ func ErrConflict(err string) render.Renderer {
 	}
 }
 
+func ErrUnauthorized(err string) render.Renderer {
+	return &ErrResponse{
+		HTTPStatusCode: 401,
+		StatusText:     "Unauthorized.",
+		ErrorText:      err,
+	}
+}
+
 var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
-var ErrUnauthorized = &ErrResponse{HTTPStatusCode: 401, StatusText: "Unauthorized."}

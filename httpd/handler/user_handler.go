@@ -85,7 +85,7 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 
 		resultUser, err := repo.GetByEmail(userTemp.Email)
 		if err != nil {
-			render.Render(w, r, errs.ErrUnauthorized)
+			render.Render(w, r, errs.ErrUnauthorized("Wrong Credentials."))
 			return
 		}
 
@@ -93,13 +93,13 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 		if err == nil {
 			roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 			userData := user.NewUserPayload(resultUser, roleRepo)
-			_, tokenString, _ := tokenAuth.Encode(jwt.MapClaims{"user_id": userData.ID, "auth_code": userData.Role.Code})
+			_, tokenString, _ := tokenAuth.Encode(jwt.MapClaims{"user_id": userData.ID, "role_id": userData.Role_ID})
 			userData.Token = tokenString
 
 			render.Status(r, http.StatusOK)
 			render.Render(w, r, userData)
 		} else {
-			render.Render(w, r, errs.ErrUnauthorized)
+			render.Render(w, r, errs.ErrUnauthorized("Wrong Credentials."))
 			return
 		}
 	}
