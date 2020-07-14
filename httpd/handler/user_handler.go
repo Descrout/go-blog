@@ -6,6 +6,7 @@ import (
 	"go-blog/platform/role"
 	"go-blog/platform/user"
 	"net/http"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/jwtauth"
@@ -93,9 +94,21 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 		if err == nil {
 			roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 			userData := user.NewUserPayload(resultUser, roleRepo)
-			_, tokenString, _ := tokenAuth.Encode(jwt.MapClaims{"user_id": userData.ID, "role_id": userData.Role_ID})
+			claims := jwt.MapClaims{"user_id": userData.ID, "role_id": userData.Role_ID}
+
+			var expiration time.Time
+
+			if r.FormValue("remember") == "1" {
+				expiration = time.Now().Add(365 * 24 * time.Hour)
+			} else {
+				expiration = time.Now().Add(time.Hour)
+			}
+
+			jwtauth.SetExpiry(claims, expiration)
+			_, tokenString, _ := tokenAuth.Encode(claims)
 			userData.Token = tokenString
 
+			http.SetCookie(w, &http.Cookie{Name: "jwt", Value: tokenString, Expires: expiration, HttpOnly: true})
 			render.Status(r, http.StatusOK)
 			render.Render(w, r, userData)
 		} else {

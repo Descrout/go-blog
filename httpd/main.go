@@ -126,10 +126,7 @@ func setupDB(filename string) *sql.DB {
 		"body"	TEXT,
 		"date"	TEXT,
 		PRIMARY KEY("id" AUTOINCREMENT)
-	);
-	INSERT INTO roles (name) values ("Guest");
-	INSERT INTO roles (name) values ("Author");
-	INSERT INTO roles (name) values ("Admin");`)
+	);`)
 
 	if err != nil {
 		log.Fatal(err)
