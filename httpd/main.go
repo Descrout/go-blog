@@ -72,6 +72,24 @@ func main() {
 
 		r.Use(jwtauth.Verifier(tokenAuth))
 
+		r.Route("/comments", func(r chi.Router) {
+			r.Use(handler.ProvideCommentRepo(db))
+
+			r.Route("/{articleID}", func(r chi.Router) {
+				r.Use(handler.ArticleIDContext)
+				r.Get("/", handler.CommentsGet)
+				r.With(jwtauth.Authenticator).Post("/", handler.CommentPost)
+			})
+
+			r.Route("/id/{commentID}", func(r chi.Router) {
+				r.Use(jwtauth.Authenticator)
+				r.Use(handler.CommentIDContext)
+
+				r.Put("/", handler.CommentUpdate)
+				r.Delete("/", handler.CommentDelete)
+			})
+		})
+
 		r.Route("/articles", func(r chi.Router) {
 			r.Get("/", handler.ArticleGetAll)
 			//r.Get("/{month}-{day}-{year}", listArticlesByDate)

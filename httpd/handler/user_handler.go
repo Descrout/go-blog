@@ -2,8 +2,8 @@ package handler
 
 import (
 	"errors"
-	errs "go-blog/platform/errors"
 	"go-blog/platform/role"
+	"go-blog/platform/status"
 	"go-blog/platform/user"
 	"net/http"
 	"time"
@@ -17,15 +17,13 @@ import (
 func UserDelete(w http.ResponseWriter, r *http.Request) {
 	userTemp := r.Context().Value(UserKey).(*user.User)
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
-	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	if err := repo.Delete(userTemp.ID); err != nil {
-		render.Render(w, r, errs.ErrInvalidRequest(err))
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
+	render.Render(w, r, status.DelSuccess())
 }
 
 func UserUpdate(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +32,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	userPayload := user.NewUserPayload(userTemp, roleRepo)
 
 	if err := render.Bind(r, userPayload); err != nil {
-		render.Render(w, r, errs.ErrInvalidRequest(err))
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 
@@ -42,7 +40,7 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 
 	if err := repo.Update(userTemp); err != nil {
-		render.Render(w, r, errs.ErrInternal(err))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
@@ -68,17 +66,17 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := &user.UserPayload{}
 		if err := render.Bind(r, data); err != nil {
-			render.Render(w, r, errs.ErrInvalidRequest(err))
+			render.Render(w, r, status.ErrInvalidRequest(err))
 			return
 		}
 		userTemp := data.User
 
 		if isValid := user.EmailRegex.MatchString(userTemp.Email); !isValid {
-			render.Render(w, r, errs.ErrInvalidRequest(errors.New("Invalid e-mail.")))
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid e-mail.")))
 			return
 		}
 		if isValid := user.PasswordRegex.MatchString(userTemp.Password); !isValid {
-			render.Render(w, r, errs.ErrInvalidRequest(errors.New("Invalid password.")))
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid password.")))
 			return
 		}
 
@@ -86,7 +84,7 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 
 		resultUser, err := repo.GetByEmail(userTemp.Email)
 		if err != nil {
-			render.Render(w, r, errs.ErrUnauthorized("Wrong Credentials."))
+			render.Render(w, r, status.ErrUnauthorized("Wrong Credentials."))
 			return
 		}
 
@@ -112,7 +110,7 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 			render.Status(r, http.StatusOK)
 			render.Render(w, r, userData)
 		} else {
-			render.Render(w, r, errs.ErrUnauthorized("Wrong Credentials."))
+			render.Render(w, r, status.ErrUnauthorized("Wrong Credentials."))
 			return
 		}
 	}
@@ -121,21 +119,21 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 func UserRegisterPost(w http.ResponseWriter, r *http.Request) {
 	data := &user.UserPayload{}
 	if err := render.Bind(r, data); err != nil {
-		render.Render(w, r, errs.ErrInvalidRequest(err))
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 	userTemp := data.User
 
 	if isValid := user.NameRegex.MatchString(userTemp.Name); !isValid {
-		render.Render(w, r, errs.ErrInvalidRequest(errors.New("Invalid name.")))
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid name.")))
 		return
 	}
 	if isValid := user.EmailRegex.MatchString(userTemp.Email); !isValid {
-		render.Render(w, r, errs.ErrInvalidRequest(errors.New("Invalid e-mail.")))
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid e-mail.")))
 		return
 	}
 	if isValid := user.PasswordRegex.MatchString(userTemp.Password); !isValid {
-		render.Render(w, r, errs.ErrInvalidRequest(errors.New("Invalid password.")))
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid password.")))
 		return
 	}
 
@@ -143,18 +141,18 @@ func UserRegisterPost(w http.ResponseWriter, r *http.Request) {
 
 	if exist, err := repo.DoesEmailExist(userTemp.Email); err == nil {
 		if exist {
-			render.Render(w, r, errs.ErrConflict("Email already registered."))
+			render.Render(w, r, status.ErrConflict("Email already registered."))
 			return
 		}
 	} else {
-		render.Render(w, r, errs.ErrInternal(err))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
 	if hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userTemp.Password), bcrypt.DefaultCost); err == nil {
 		userTemp.Password = string(hashedPassword)
 	} else {
-		render.Render(w, r, errs.ErrInternal(err))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
@@ -162,7 +160,7 @@ func UserRegisterPost(w http.ResponseWriter, r *http.Request) {
 		data.User.ID = id
 		data.User.Role_ID = 1
 	} else {
-		render.Render(w, r, errs.ErrInternal(err))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 

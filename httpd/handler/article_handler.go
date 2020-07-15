@@ -2,8 +2,8 @@ package handler
 
 import (
 	"go-blog/platform/article"
-	"go-blog/platform/errors"
 	"go-blog/platform/role"
+	"go-blog/platform/status"
 	"go-blog/platform/user"
 	"net/http"
 
@@ -14,28 +14,26 @@ import (
 func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
-	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
 	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
 	if err != nil {
-		render.Render(w, r, errors.ErrUnauthorized("Incorrect token."))
+		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
 	}
 
 	if articleTemp.User_ID != int64(claims["user_id"].(float64)) && !tempRole.Check(role.CanManageOtherArticle) {
-		render.Render(w, r, errors.ErrUnauthorized("You are not the author."))
+		render.Render(w, r, status.ErrUnauthorized("You are not the author."))
 		return
 	}
 
 	if err := articleRepo.Delete(articleTemp.ID); err != nil {
-		render.Render(w, r, errors.ErrInvalidRequest(err))
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, article.NewArticlePayload(articleTemp, userRepo, roleRepo))
+	render.Render(w, r, status.DelSuccess())
 }
 
 func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +41,7 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	articlePayload := article.NewArticlePayload(articleTemp, nil, nil)
 
 	if err := render.Bind(r, articlePayload); err != nil {
-		render.Render(w, r, errors.ErrInvalidRequest(err))
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 	articleTemp = articlePayload.Article
@@ -55,17 +53,17 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	_, claims, _ := jwtauth.FromContext(r.Context())
 	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
 	if err != nil {
-		render.Render(w, r, errors.ErrUnauthorized("Incorrect token."))
+		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
 	}
 
 	if articleTemp.User_ID != int64(claims["user_id"].(float64)) && !tempRole.Check(role.CanManageOtherArticle) {
-		render.Render(w, r, errors.ErrUnauthorized("You are not the author."))
+		render.Render(w, r, status.ErrUnauthorized("You are not the author."))
 		return
 	}
 
 	if err := articleRepo.Update(articleTemp); err != nil {
-		render.Render(w, r, errors.ErrInternal(err))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
@@ -91,7 +89,7 @@ func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
 func ArticlePost(w http.ResponseWriter, r *http.Request) {
 	data := &article.ArticlePayload{}
 	if err := render.Bind(r, data); err != nil {
-		render.Render(w, r, errors.ErrInvalidRequest(err))
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 
@@ -105,17 +103,17 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 	articleTemp.User_ID = int64(claims["user_id"].(float64))
 	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
 	if err != nil {
-		render.Render(w, r, errors.ErrUnauthorized("Incorrect token."))
+		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
 	}
 
 	if !tempRole.Check(role.CanPostArticle) {
-		render.Render(w, r, errors.ErrUnauthorized("You don't have enough authority to post an article."))
+		render.Render(w, r, status.ErrUnauthorized("You don't have enough authority to post an article."))
 		return
 	}
 
 	if id, err := articleRepo.Add(articleTemp); err != nil {
-		render.Render(w, r, errors.ErrInternal(err))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	} else {
 		articleTemp.ID = id
