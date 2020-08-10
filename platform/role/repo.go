@@ -83,7 +83,7 @@ func (repo *Repo) Add(role *Role) (int64, error) {
 	return id, err
 }
 
-func (repo *Repo) GetByID(id int64) (*Role, error) {
+func (repo *Repo) GetByID(id interface{}) (*Role, error) {
 	role := &Role{}
 
 	stmt, err := repo.DB.Prepare("SELECT * FROM roles WHERE id = ?")

@@ -59,7 +59,7 @@ func UserGetAll(w http.ResponseWriter, r *http.Request) {
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 	users := repo.GetAll()
-	render.RenderList(w, r, user.NewUserListPayload(users, roleRepo))
+	_ = render.RenderList(w, r, user.NewUserListPayload(users, roleRepo))
 }
 
 func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {

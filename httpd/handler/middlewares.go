@@ -23,8 +23,9 @@ const (
 	UserRepoKey    key = 2
 	UserKey        key = 3
 	RoleRepoKey    key = 4
-	CommentRepoKey key = 5
-	CommentKey     key = 6
+	RoleKey        key = 5
+	CommentRepoKey key = 6
+	CommentKey     key = 7
 )
 
 func ProvideCommentRepo(db *sql.DB) func(http.Handler) http.Handler {
@@ -65,6 +66,28 @@ func ProvideUserRepo(db *sql.DB) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func RoleIDContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		repo := r.Context().Value(RoleRepoKey).(*role.Repo)
+		var role *role.Role
+		var err error
+
+		if roleID := chi.URLParam(r, "roleID"); roleID != "" {
+			role, err = repo.GetByID(roleID)
+		} else {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing role ID")))
+			return
+		}
+		if err != nil {
+			render.Render(w, r, status.ErrNotFound)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), RoleKey, role)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func CommentIDContext(next http.Handler) http.Handler {

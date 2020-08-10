@@ -70,7 +70,20 @@ func main() {
 		r.Use(handler.ProvideUserRepo(db))
 		r.Use(handler.ProvideRoleRepo(db))
 
-		r.Use(jwtauth.Verifier(tokenAuth))
+		r.Use(jwtauth.Verifier(tokenAuth)) // inits auth but does not check yet
+
+		r.Route("/roles", func(r chi.Router) {
+			r.Get("/", handler.RoleGetAll)
+
+			r.With(jwtauth.Authenticator).Post("/", handler.RolePost)
+
+			r.Route("/{roleID}", func(r chi.Router) {
+				r.Use(handler.RoleIDContext)
+				r.Get("/", handler.RoleGetByID)
+				r.With(jwtauth.Authenticator).Put("/", handler.RoleUpdate)
+				r.With(jwtauth.Authenticator).Delete("/", handler.RoleDelete)
+			})
+		})
 
 		r.Route("/comments", func(r chi.Router) {
 			r.Use(handler.ProvideCommentRepo(db))
