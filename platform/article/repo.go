@@ -34,7 +34,7 @@ func (repo *Repo) Delete(id int64) error {
 }
 
 func (repo *Repo) Update(article *Article) error {
-	stmt, err := repo.DB.Prepare("UPDATE articles SET title = ?, body = ?, date = ? WHERE id = ?")
+	stmt, err := repo.DB.Prepare("UPDATE articles SET title = ?, body = ?, updated_at = ? WHERE id = ?")
 
 	if err != nil {
 		log.Println(err)
@@ -43,7 +43,7 @@ func (repo *Repo) Update(article *Article) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(article.Title, article.Body, article.Date, article.ID)
+	_, err = stmt.Exec(article.Title, article.Body, article.Updated_At, article.ID)
 
 	if err != nil {
 		log.Println(err)
@@ -56,8 +56,8 @@ func (repo *Repo) Update(article *Article) error {
 func (repo *Repo) Add(article *Article) (int64, error) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
-	articles (user_id,  title, body, date) 
-	values (?, ?, ?, ?)`)
+	articles (user_id, title, body, created_at, updated_at) 
+	values (?, ?, ?, ?, ?)`)
 
 	if err != nil {
 		log.Println(err)
@@ -66,7 +66,7 @@ func (repo *Repo) Add(article *Article) (int64, error) {
 
 	defer stmt.Close()
 
-	result, err := stmt.Exec(article.User_ID, article.Title, article.Body, article.Date)
+	result, err := stmt.Exec(article.User_ID, article.Title, article.Body, article.Created_At, article.Updated_At)
 	if err != nil {
 		log.Println(err)
 		return 0, err
@@ -93,7 +93,7 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	defer stmt.Close()
 
 	err = stmt.QueryRow(id).Scan(&article.ID, &article.User_ID,
-		&article.Title, &article.Body, &article.Date)
+		&article.Title, &article.Body, &article.Created_At, &article.Updated_At)
 
 	if err != nil {
 		log.Println(err)
@@ -106,7 +106,7 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 func (repo *Repo) GetAll() []*Article {
 	articles := []*Article{}
 
-	rows, err := repo.DB.Query(`SELECT * FROM articles`)
+	rows, err := repo.DB.Query(`SELECT id, user_id, title, created_at, updated_at FROM articles`)
 
 	if err != nil {
 		log.Println(err)
@@ -115,7 +115,7 @@ func (repo *Repo) GetAll() []*Article {
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Body, &article.Date)
+			&article.Title, &article.Created_At, &article.Updated_At)
 		articles = append(articles, &article)
 	}
 

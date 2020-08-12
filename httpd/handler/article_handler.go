@@ -38,12 +38,18 @@ func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 
 func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
+
+	created_at := articleTemp.Created_At
+
 	articlePayload := article.NewArticlePayload(articleTemp, nil, nil)
 
 	if err := render.Bind(r, articlePayload); err != nil {
 		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
+
+	articlePayload.Created_At = created_at // keep the created date same as before.
+
 	articleTemp = articlePayload.Article
 
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)

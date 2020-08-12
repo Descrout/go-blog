@@ -40,12 +40,18 @@ func CommentDelete(w http.ResponseWriter, r *http.Request) {
 
 func CommentUpdate(w http.ResponseWriter, r *http.Request) {
 	commentTemp := r.Context().Value(CommentKey).(*comment.Comment)
+
+	created_at := commentTemp.Created_At
+
 	commentPayload := comment.NewCommentPayload(commentTemp, nil, nil)
 
 	if err := render.Bind(r, commentPayload); err != nil {
 		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
+
+	commentPayload.Created_At = created_at // keep the created date same as before.
+
 	commentTemp = commentPayload.Comment
 
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)

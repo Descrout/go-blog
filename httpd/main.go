@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"go-blog/httpd/handler"
 	"log"
 	"net/http"
@@ -88,18 +87,18 @@ func main() {
 		r.Route("/comments", func(r chi.Router) {
 			r.Use(handler.ProvideCommentRepo(db))
 
-			r.Route("/{articleID}", func(r chi.Router) {
-				r.Use(handler.ArticleIDContext)
-				r.Get("/", handler.CommentsGet)
-				r.With(jwtauth.Authenticator).Post("/", handler.CommentPost)
-			})
-
 			r.Route("/id/{commentID}", func(r chi.Router) {
 				r.Use(jwtauth.Authenticator)
 				r.Use(handler.CommentIDContext)
 
 				r.Put("/", handler.CommentUpdate)
 				r.Delete("/", handler.CommentDelete)
+			})
+
+			r.Route("/{articleID}", func(r chi.Router) {
+				r.Use(handler.ArticleIDContext)
+				r.Get("/", handler.CommentsGet)
+				r.With(jwtauth.Authenticator).Post("/", handler.CommentPost)
 			})
 		})
 
@@ -118,7 +117,7 @@ func main() {
 		})
 	})
 
-	fmt.Println("Serving on port " + port)
+	log.Println("Serving on port " + port)
 	http.ListenAndServe(port, r)
 }
 
@@ -133,7 +132,7 @@ func setupDB(filename string) *sql.DB {
 		"name"	TEXT NOT NULL,
 		"password"	TEXT NOT NULL,
 		"email" TEXT NOT NULL,
-		"image"	TEXT NOT NULL DEFAULT "./user.png",
+		"image"	TEXT NOT NULL DEFAULT "/images/user.png",
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
 	CREATE TABLE IF NOT EXISTS "roles" (
@@ -147,7 +146,8 @@ func setupDB(filename string) *sql.DB {
 		"user_id"	INTEGER NOT NULL,
 		"title"	TEXT NOT NULL,
 		"body"	TEXT NOT NULL,
-		"date"	TEXT NOT NULL,
+		"created_at"	INTEGER NOT NULL,
+		"updated_at"	INTEGER NOT NULL,
 		PRIMARY KEY("ID" AUTOINCREMENT)
 	);
 	CREATE TABLE IF NOT EXISTS "comments" (
@@ -155,9 +155,13 @@ func setupDB(filename string) *sql.DB {
 		"user_id"	INTEGER,
 		"article_id"	INTEGER,
 		"body"	TEXT,
-		"date"	TEXT,
+		"created_at"	INTEGER NOT NULL,
+		"updated_at"	INTEGER NOT NULL,
 		PRIMARY KEY("id" AUTOINCREMENT)
-	);`)
+	);
+	REPLACE INTO roles (id, name) values (1, "Guest");
+	REPLACE INTO roles (id, name) values (2, "Author");
+	REPLACE INTO roles (id, name, code) values (3, "Admin", 63);`)
 
 	if err != nil {
 		log.Fatal(err)

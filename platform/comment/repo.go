@@ -34,7 +34,7 @@ func (repo *Repo) Delete(id int64) error {
 }
 
 func (repo *Repo) Update(comment *Comment) error {
-	stmt, err := repo.DB.Prepare("UPDATE comments SET body = ?, date = ? WHERE id = ?")
+	stmt, err := repo.DB.Prepare("UPDATE comments SET body = ?, updated_at = ? WHERE id = ?")
 
 	if err != nil {
 		log.Println(err)
@@ -43,7 +43,7 @@ func (repo *Repo) Update(comment *Comment) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(comment.Body, comment.Date, comment.ID)
+	_, err = stmt.Exec(comment.Body, comment.Updated_At, comment.ID)
 
 	if err != nil {
 		log.Println(err)
@@ -56,8 +56,8 @@ func (repo *Repo) Update(comment *Comment) error {
 func (repo *Repo) Add(comment *Comment) (int64, error) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
-	comments (user_id,  article_id, body, date) 
-	values (?, ?, ?, ?)`)
+	comments (user_id,  article_id, body, created_at, updated_at) 
+	values (?, ?, ?, ?, ?)`)
 
 	if err != nil {
 		log.Println(err)
@@ -66,7 +66,7 @@ func (repo *Repo) Add(comment *Comment) (int64, error) {
 
 	defer stmt.Close()
 
-	result, err := stmt.Exec(comment.User_ID, comment.Article_ID, comment.Body, comment.Date)
+	result, err := stmt.Exec(comment.User_ID, comment.Article_ID, comment.Body, comment.Created_At, comment.Updated_At)
 	if err != nil {
 		log.Println(err)
 		return 0, err
@@ -93,7 +93,7 @@ func (repo *Repo) GetByID(id string) (*Comment, error) {
 	defer stmt.Close()
 
 	err = stmt.QueryRow(id).Scan(&comment.ID, &comment.User_ID,
-		&comment.Article_ID, &comment.Body, &comment.Date)
+		&comment.Article_ID, &comment.Body, &comment.Created_At, &comment.Updated_At)
 
 	if err != nil {
 		log.Println(err)
@@ -115,7 +115,7 @@ func (repo *Repo) GetAllInArticle(articleID int64) []*Comment {
 	for rows.Next() {
 		var comment Comment
 		rows.Scan(&comment.ID, &comment.User_ID,
-			&comment.Article_ID, &comment.Body, &comment.Date)
+			&comment.Article_ID, &comment.Body, &comment.Created_At, &comment.Updated_At)
 		comments = append(comments, &comment)
 	}
 

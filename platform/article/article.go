@@ -11,11 +11,12 @@ import (
 )
 
 type Article struct {
-	ID      int64  `json:"id"`
-	User_ID int64  `json:"-"`
-	Title   string `json:"title"`
-	Body    string `json:"body"`
-	Date    int64  `json:"date"`
+	ID         int64  `json:"id"`
+	User_ID    int64  `json:"-"`
+	Title      string `json:"title"`
+	Body       string `json:"body"`
+	Created_At int64  `json:"created_at"`
+	Updated_At int64  `json:"updated_at"`
 }
 
 type ArticlePayload struct {
@@ -46,7 +47,11 @@ func (a *ArticlePayload) Bind(r *http.Request) error {
 	if a.Article == nil {
 		return errors.New("missing required Article fields.")
 	}
-	a.Date = time.Now().Unix()
+
+	now := time.Now().Unix()
+	a.Updated_At = now
+	a.Created_At = now
+
 	return nil
 }
 

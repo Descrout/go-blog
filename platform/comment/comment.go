@@ -15,7 +15,8 @@ type Comment struct {
 	User_ID    int64  `json:"-"`
 	Article_ID int64  `json:"-"`
 	Body       string `json:"body"`
-	Date       int64  `json:"date"`
+	Created_At int64  `json:"created_at"`
+	Updated_At int64  `json:"updated_at"`
 }
 
 type CommentPayload struct {
@@ -46,7 +47,9 @@ func (c *CommentPayload) Bind(r *http.Request) error {
 	if c.Comment == nil {
 		return errors.New("missing required Comment fields.")
 	}
-	c.Date = time.Now().Unix()
+	now := time.Now().Unix()
+	c.Updated_At = now
+	c.Created_At = now
 	return nil
 }
 
