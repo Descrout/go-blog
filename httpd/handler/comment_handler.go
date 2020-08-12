@@ -18,7 +18,7 @@ func CommentDelete(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	tempRole, err := roleRepo.GetByID(claims["role_id"])
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
@@ -59,7 +59,7 @@ func CommentUpdate(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	tempRole, err := roleRepo.GetByID(claims["role_id"])
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
@@ -103,7 +103,7 @@ func CommentPost(w http.ResponseWriter, r *http.Request) {
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
 	commentTemp.User_ID = int64(claims["user_id"].(float64))
-	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	tempRole, err := roleRepo.GetByID(claims["role_id"])
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return

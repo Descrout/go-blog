@@ -14,7 +14,7 @@ func RoleDelete(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64))); err != nil {
+	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
 	} else if !userRole.Check(role.CanManageRole) {
@@ -42,7 +42,7 @@ func RoleUpdate(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64))); err != nil {
+	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
 	} else if !userRole.Check(role.CanManageRole) {
@@ -82,7 +82,7 @@ func RolePost(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64))); err != nil {
+	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
 	} else if !userRole.Check(role.CanManageRole) {

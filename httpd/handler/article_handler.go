@@ -17,7 +17,7 @@ func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	tempRole, err := roleRepo.GetByID(claims["role_id"])
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
@@ -57,7 +57,7 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
-	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	tempRole, err := roleRepo.GetByID(claims["role_id"])
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
@@ -107,7 +107,7 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 
 	_, claims, _ := jwtauth.FromContext(r.Context())
 	articleTemp.User_ID = int64(claims["user_id"].(float64))
-	tempRole, err := roleRepo.GetByID(int64(claims["role_id"].(float64)))
+	tempRole, err := roleRepo.GetByID(claims["role_id"])
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 		return
