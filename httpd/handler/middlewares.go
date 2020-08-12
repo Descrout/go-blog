@@ -10,8 +10,10 @@ import (
 	"go-blog/platform/status"
 	"go-blog/platform/user"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 )
 
@@ -108,6 +110,33 @@ func CommentIDContext(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), CommentKey, comment)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func UserAuthContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var userID string
+
+		if userID = chi.URLParam(r, "userID"); userID == "" {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing user ID")))
+			return
+		}
+
+		roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+		_, claims, _ := jwtauth.FromContext(r.Context())
+		userRole, err := roleRepo.GetByID(claims["role_id"])
+		if err != nil {
+			render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+			return
+		}
+
+		if userID != strconv.Itoa(int(claims["user_id"].(float64))) && !userRole.Check(role.CanManageOtherUsers) {
+			render.Render(w, r, status.ErrUnauthorized("You are not the user."))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), UserKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -15,7 +15,7 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
-func (repo *Repo) Delete(id int64) error {
+func (repo *Repo) Delete(id interface{}) error {
 	stmt, err := repo.DB.Prepare("DELETE FROM users WHERE id = ?")
 
 	if err != nil {
@@ -33,10 +33,10 @@ func (repo *Repo) Delete(id int64) error {
 	return nil
 }
 
-func (repo *Repo) Update(user *User) error {
+func (repo *Repo) Update(id interface{}, field string, value interface{}) error {
 	stmt, err := repo.DB.Prepare(`
 	UPDATE users 
-	SET name = ?, password = ?, email = ?, role_id = ?, image = ? 
+	SET ` + field + `= ?
 	WHERE id = ?`)
 
 	if err != nil {
@@ -46,7 +46,7 @@ func (repo *Repo) Update(user *User) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(user.Name, user.Password, user.Email, user.Role_ID, user.Image, user.ID)
+	_, err = stmt.Exec(value, id)
 
 	if err != nil {
 		log.Println(err)
@@ -118,7 +118,7 @@ func (repo *Repo) GetByEmail(email string) (*User, error) {
 	return user, err
 }
 
-func (repo *Repo) GetByID(id int64) (*User, error) {
+func (repo *Repo) GetByID(id interface{}) (*User, error) {
 	user := &User{}
 
 	stmt, err := repo.DB.Prepare("SELECT * FROM users WHERE id = ?")

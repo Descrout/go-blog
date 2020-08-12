@@ -15,6 +15,7 @@ const (
 	CanManageOtherArticle  = 8
 	CanManageRole          = 16
 	CanAssignRole          = 32
+	CanManageOtherUsers    = 64
 )
 
 type Role struct {

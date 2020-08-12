@@ -9,16 +9,17 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func UserDelete(w http.ResponseWriter, r *http.Request) {
-	userTemp := r.Context().Value(UserKey).(*user.User)
+	userID := r.Context().Value(UserKey).(string)
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 
-	if err := repo.Delete(userTemp.ID); err != nil {
+	if err := repo.Delete(userID); err != nil {
 		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
@@ -26,21 +27,30 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, status.DelSuccess())
 }
 
-func UserUpdate(w http.ResponseWriter, r *http.Request) {
-	userTemp := r.Context().Value(UserKey).(*user.User)
+func UserUpdateName(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(UserKey).(string)
+	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	userPayload := user.NewUserPayload(userTemp, roleRepo)
 
-	if err := render.Bind(r, userPayload); err != nil {
-		render.Render(w, r, status.ErrInvalidRequest(err))
+	var name string
+	if name = r.FormValue("name"); name == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing name field")))
 		return
 	}
 
-	userTemp = userPayload.User
-	repo := r.Context().Value(UserRepoKey).(*user.Repo)
+	if isValid := user.NameRegex.MatchString(name); !isValid {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid name.")))
+		return
+	}
 
-	if err := repo.Update(userTemp); err != nil {
+	if err := repo.Update(userID, "name", name); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	userTemp, err := repo.GetByID(userID)
+	if err != nil {
+		render.Render(w, r, status.ErrNotFound)
 		return
 	}
 
@@ -49,8 +59,21 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserGetByID(w http.ResponseWriter, r *http.Request) {
-	userTemp := r.Context().Value(UserKey).(*user.User)
+	var userID string
+
+	if userID = chi.URLParam(r, "userID"); userID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing user ID")))
+		return
+	}
+
+	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+
+	userTemp, err := repo.GetByID(userID)
+	if err != nil {
+		render.Render(w, r, status.ErrNotFound)
+		return
+	}
 
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
@@ -59,7 +82,7 @@ func UserGetAll(w http.ResponseWriter, r *http.Request) {
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 	users := repo.GetAll()
-	_ = render.RenderList(w, r, user.NewUserListPayload(users, roleRepo))
+	render.RenderList(w, r, user.NewUserListPayload(users, roleRepo))
 }
 
 func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {

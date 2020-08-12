@@ -71,6 +71,25 @@ func main() {
 
 		r.Use(jwtauth.Verifier(tokenAuth)) // inits auth but does not check yet
 
+		r.Route("/users", func(r chi.Router) {
+			r.Get("/", handler.UserGetAll)
+
+			r.Route("/{userID}", func(r chi.Router) {
+				r.Get("/", handler.UserGetByID)
+
+				r.Group(func(r chi.Router) {
+					r.Use(jwtauth.Authenticator, handler.UserAuthContext)
+					r.Put("/name", handler.UserUpdateName)
+					//TODO
+					//r.Put("/password", handler.funcname)
+					//r.Put("/email", handler.funcname)
+					//r.Put("/image", handler.funcname)
+					//r.Put("/description", handler.funcname)
+					r.Delete("/", handler.UserDelete)
+				})
+			})
+		})
+
 		r.Route("/roles", func(r chi.Router) {
 			r.Get("/", handler.RoleGetAll)
 
@@ -161,7 +180,7 @@ func setupDB(filename string) *sql.DB {
 	);
 	REPLACE INTO roles (id, name) values (1, "Guest");
 	REPLACE INTO roles (id, name) values (2, "Author");
-	REPLACE INTO roles (id, name, code) values (3, "Admin", 63);`)
+	REPLACE INTO roles (id, name, code) values (3, "Admin", 127);`)
 
 	if err != nil {
 		log.Fatal(err)
