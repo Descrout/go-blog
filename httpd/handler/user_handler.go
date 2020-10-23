@@ -27,6 +27,45 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, status.DelSuccess())
 }
 
+func AssignRole(w http.ResponseWriter, r *http.Request) {
+	var userID string
+
+	if userID = chi.URLParam(r, "userID"); userID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing user ID")))
+		return
+	}
+
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+
+	var roleID string
+	if roleID = r.FormValue("id"); roleID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing role ID")))
+		return
+	}
+
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
+		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+		return
+	} else if !userRole.Check(role.CanManageRole) {
+		render.Render(w, r, status.ErrUnauthorized("You are not authorized to assign a role."))
+		return
+	}
+
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+
+	if err := userRepo.Update(userID, "role_id", roleID); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	if userTemp, err := userRepo.GetByID(userID); err != nil {
+		render.Render(w, r, status.ErrNotFound)
+	} else {
+		render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
+	}
+}
+
 func UserUpdateName(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserKey).(string)
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)

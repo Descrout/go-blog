@@ -77,10 +77,12 @@ func main() {
 			r.Route("/{userID}", func(r chi.Router) {
 				r.Get("/", handler.UserGetByID)
 
+				r.With(jwtauth.Authenticator).Put("/role", handler.AssignRole)
+
 				r.Group(func(r chi.Router) {
 					r.Use(jwtauth.Authenticator, handler.UserAuthContext)
+					//TODO - User Update Fields
 					r.Put("/name", handler.UserUpdateName)
-					//TODO
 					//r.Put("/password", handler.funcname)
 					//r.Put("/email", handler.funcname)
 					//r.Put("/image", handler.funcname)
