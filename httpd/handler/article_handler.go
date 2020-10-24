@@ -88,7 +88,8 @@ func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	articles := articleRepo.GetAll()
+	page := r.Context().Value(PageKey).(int)
+	articles := articleRepo.GetAll(page)
 	render.RenderList(w, r, article.NewArticleListPayload(articles, userRepo, roleRepo))
 }
 

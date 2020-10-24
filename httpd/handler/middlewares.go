@@ -28,6 +28,7 @@ const (
 	RoleKey        key = 5
 	CommentRepoKey key = 6
 	CommentKey     key = 7
+	PageKey        key = 8
 )
 
 func ProvideCommentRepo(db *sql.DB) func(http.Handler) http.Handler {
@@ -159,6 +160,24 @@ func ArticleIDContext(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), ArticleKey, article)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func Paginate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var pageNum int = 0
+
+		if page := r.FormValue("page"); page != "" {
+			var err error
+			pageNum, err = strconv.Atoi(page)
+			if err != nil || pageNum <= 0 {
+				render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid page number.")))
+				return
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), PageKey, pageNum)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

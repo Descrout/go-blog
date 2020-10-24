@@ -124,7 +124,7 @@ func main() {
 		})
 
 		r.Route("/articles", func(r chi.Router) {
-			r.Get("/", handler.ArticleGetAll)
+			r.With(handler.Paginate).Get("/", handler.ArticleGetAll)
 			//r.Get("/{month}-{day}-{year}", listArticlesByDate)
 			//r.Get("/search", searchArticles)
 			r.With(jwtauth.Authenticator).Post("/", handler.ArticlePost)

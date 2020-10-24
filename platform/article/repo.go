@@ -5,6 +5,8 @@ import (
 	"log"
 )
 
+const ARTICLE_IN_PAGE = 10
+
 type Repo struct {
 	DB *sql.DB
 }
@@ -103,10 +105,11 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	return article, err
 }
 
-func (repo *Repo) GetAll() []*Article {
+func (repo *Repo) GetAll(page int) []*Article {
 	articles := []*Article{}
 
-	rows, err := repo.DB.Query(`SELECT id, user_id, title, created_at, updated_at FROM articles`)
+	rows, err := repo.DB.Query(`SELECT * FROM articles ORDER BY created_at ASC LIMIT ?, ?`,
+		(page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE)
 
 	if err != nil {
 		log.Println(err)
@@ -115,7 +118,7 @@ func (repo *Repo) GetAll() []*Article {
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Created_At, &article.Updated_At)
+			&article.Title, &article.Body, &article.Created_At, &article.Updated_At)
 		articles = append(articles, &article)
 	}
 
