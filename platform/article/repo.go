@@ -108,7 +108,7 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 func (repo *Repo) GetAll(page int) []*Article {
 	articles := []*Article{}
 
-	rows, err := repo.DB.Query(`SELECT * FROM articles ORDER BY created_at ASC LIMIT ?, ?`,
+	rows, err := repo.DB.Query(`SELECT * FROM articles ORDER BY created_at DESC LIMIT ?, ?`,
 		(page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE)
 
 	if err != nil {
