@@ -1,5 +1,5 @@
 blog.db
 go.sum
 bin/*
-profile-pics/*
-!profile-pics/user.png
+static/profile-pics/*
+!static/profile-pics/user.png
