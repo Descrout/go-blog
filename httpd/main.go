@@ -85,12 +85,10 @@ func main() {
 
 				r.Group(func(r chi.Router) {
 					r.Use(jwtauth.Authenticator, handler.UserAuthContext)
-					//TODO - User Update Fields
 					r.Put("/name", handler.UserUpdateName)
-					//r.Put("/password", handler.funcname)
-					//r.Put("/email", handler.funcname)
+					r.Put("/password", handler.UserUpdatePassword)
+					//r.Put("/email", handler.UserUpdateEmail)
 					r.Post("/image", handler.UserUpdateImage)
-					//r.Put("/description", handler.funcname)
 					r.Delete("/", handler.UserDelete)
 				})
 			})

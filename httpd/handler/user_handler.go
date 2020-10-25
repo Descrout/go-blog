@@ -40,7 +40,7 @@ func AssignRole(w http.ResponseWriter, r *http.Request) {
 	var userID string
 
 	if userID = chi.URLParam(r, "userID"); userID == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing user ID")))
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
 		return
 	}
 
@@ -48,7 +48,7 @@ func AssignRole(w http.ResponseWriter, r *http.Request) {
 
 	var roleID string
 	if roleID = r.FormValue("id"); roleID == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing role ID")))
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing role ID")))
 		return
 	}
 
@@ -152,28 +152,78 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 
-func UserUpdateName(w http.ResponseWriter, r *http.Request) {
+func UserUpdatePassword(w http.ResponseWriter, r *http.Request) {
+	var password string
+	if password = r.FormValue("password"); password == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing password field")))
+		return
+	}
+
+	if !user.PasswordRegex.MatchString(password) {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Password requirements does not match.")))
+		return
+	}
+
+	var oldPassword string
+	if oldPassword = r.FormValue("oldPassword"); oldPassword == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing old password field")))
+		return
+	}
+
+	if password == oldPassword {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Old password must be different than current password.")))
+		return
+	}
+
 	userID := r.Context().Value(UserKey).(string)
-	repo := r.Context().Value(UserRepoKey).(*user.Repo)
-	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	tempUser, _ := userRepo.GetByID(userID)
 
-	var name string
-	if name = r.FormValue("name"); name == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing name field")))
+	err := bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(oldPassword))
+	if err != nil {
+		render.Render(w, r, status.ErrUnauthorized("Current password is wrong."))
 		return
 	}
 
-	if isValid := user.NameRegex.MatchString(name); !isValid {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid name.")))
-		return
-	}
-
-	if err := repo.Update(userID, "name", name); err != nil {
+	if hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
+		password = string(hashedPassword)
+	} else {
 		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
-	userTemp, err := repo.GetByID(userID)
+	if err = userRepo.Update(userID, "password", password); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, user.NewUserPayload(tempUser, roleRepo))
+}
+
+func UserUpdateName(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(UserKey).(string)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+
+	var name string
+	if name = r.FormValue("name"); name == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing name field")))
+		return
+	}
+
+	if !user.NameRegex.MatchString(name) {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid name.")))
+		return
+	}
+
+	if err := userRepo.Update(userID, "name", name); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	userTemp, err := userRepo.GetByID(userID)
 	if err != nil {
 		render.Render(w, r, status.ErrNotFound)
 		return
@@ -187,7 +237,7 @@ func UserGetByID(w http.ResponseWriter, r *http.Request) {
 	var userID string
 
 	if userID = chi.URLParam(r, "userID"); userID == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("missing user ID")))
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
 		return
 	}
 
@@ -219,12 +269,12 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 		}
 		userTemp := data.User
 
-		if isValid := user.EmailRegex.MatchString(userTemp.Email); !isValid {
+		if !user.EmailRegex.MatchString(userTemp.Email) {
 			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid e-mail.")))
 			return
 		}
-		if isValid := user.PasswordRegex.MatchString(userTemp.Password); !isValid {
-			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid password.")))
+		if !user.PasswordRegex.MatchString(userTemp.Password) {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Password requirements does not match.")))
 			return
 		}
 
@@ -237,30 +287,30 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(resultUser.Password), []byte(userTemp.Password))
-		if err == nil {
-			roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-			userData := user.NewUserPayload(resultUser, roleRepo)
-			claims := jwt.MapClaims{"user_id": userData.ID, "role_id": userData.Role_ID}
-
-			var expiration time.Time
-
-			if r.FormValue("remember") == "1" {
-				expiration = time.Now().Add(365 * 24 * time.Hour)
-			} else {
-				expiration = time.Now().Add(time.Hour)
-			}
-
-			jwtauth.SetExpiry(claims, expiration)
-			_, tokenString, _ := tokenAuth.Encode(claims)
-			userData.Token = tokenString
-
-			http.SetCookie(w, &http.Cookie{Name: "jwt", Value: tokenString, Expires: expiration, HttpOnly: true})
-			render.Status(r, http.StatusOK)
-			render.Render(w, r, userData)
-		} else {
+		if err != nil {
 			render.Render(w, r, status.ErrUnauthorized("Wrong Credentials."))
 			return
 		}
+
+		roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+		userData := user.NewUserPayload(resultUser, roleRepo)
+		claims := jwt.MapClaims{"user_id": userData.ID, "role_id": userData.Role_ID}
+
+		var expiration time.Time
+
+		if r.FormValue("remember") == "1" {
+			expiration = time.Now().Add(365 * 24 * time.Hour)
+		} else {
+			expiration = time.Now().Add(time.Hour)
+		}
+
+		jwtauth.SetExpiry(claims, expiration)
+		_, tokenString, _ := tokenAuth.Encode(claims)
+		userData.Token = tokenString
+
+		http.SetCookie(w, &http.Cookie{Name: "jwt", Value: tokenString, Expires: expiration, HttpOnly: true})
+		render.Status(r, http.StatusOK)
+		render.Render(w, r, userData)
 	}
 }
 
@@ -272,16 +322,16 @@ func UserRegisterPost(w http.ResponseWriter, r *http.Request) {
 	}
 	userTemp := data.User
 
-	if isValid := user.NameRegex.MatchString(userTemp.Name); !isValid {
+	if !user.NameRegex.MatchString(userTemp.Name) {
 		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid name.")))
 		return
 	}
-	if isValid := user.EmailRegex.MatchString(userTemp.Email); !isValid {
+	if !user.EmailRegex.MatchString(userTemp.Email) {
 		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid e-mail.")))
 		return
 	}
-	if isValid := user.PasswordRegex.MatchString(userTemp.Password); !isValid {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid password.")))
+	if !user.PasswordRegex.MatchString(userTemp.Password) {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Password requirements does not match.")))
 		return
 	}
 
