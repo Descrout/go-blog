@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -18,8 +18,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const PROFILE_PICS = "profile-pics"
-const DEFAULT_PIC = "user.png"
+const (
+	PROFILE_PICS = "/profile-pics"
+	DEFAULT_PIC  = "user.png"
+	SERVE_PATH   = "/static"
+)
 
 func UserDelete(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserKey).(string)
@@ -72,6 +75,7 @@ func AssignRole(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// only accepts 2mb png and jpeg
 func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 	max := int64(2 << 20)
 
@@ -90,7 +94,9 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	tempFile, err := ioutil.TempFile(PROFILE_PICS, "profile-*.png")
+	workDir, _ := os.Getwd()
+	picsDir := filepath.Join(workDir, SERVE_PATH, PROFILE_PICS)
+	tempFile, err := ioutil.TempFile(picsDir, "profile-*.png")
 	if err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		return
@@ -129,9 +135,9 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	singleFilename := strings.Split(tempFile.Name(), "/")[1]
+	baseFilename := filepath.Base(tempFile.Name())
 
-	err = userRepo.Update(userID, "image", singleFilename)
+	err = userRepo.Update(userID, "image", baseFilename)
 	if err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		os.Remove(tempFile.Name())
@@ -139,10 +145,10 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userTemp.Image != DEFAULT_PIC {
-		os.Remove(PROFILE_PICS + "/" + userTemp.Image)
+		os.Remove(filepath.Join(picsDir, userTemp.Image))
 	}
 
-	userTemp.Image = singleFilename
+	userTemp.Image = baseFilename
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 

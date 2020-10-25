@@ -5,6 +5,9 @@ import (
 	"go-blog/httpd/handler"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -17,6 +20,7 @@ const (
 	port        = ":3000"
 	dbName      = "./blog.db"
 	tokenSecret = "my_secret"
+	servePath   = "static"
 )
 
 func main() {
@@ -138,8 +142,32 @@ func main() {
 		})
 	})
 
+	FileServer(r, handler.SERVE_PATH)
+
 	log.Println("Serving on port " + port)
 	http.ListenAndServe(port, r)
+}
+
+func FileServer(r chi.Router, path string) {
+	workDir, _ := os.Getwd()
+	root := http.Dir(filepath.Join(workDir, path))
+
+	if strings.ContainsAny(path, "{}*") {
+		panic("FileServer does not permit any URL parameters.")
+	}
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
+
+	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
+		fs.ServeHTTP(w, r)
+	})
 }
 
 func setupDB(filename string) *sql.DB {
