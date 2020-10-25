@@ -5,7 +5,10 @@ import (
 	"go-blog/platform/role"
 	"go-blog/platform/status"
 	"go-blog/platform/user"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -14,6 +17,9 @@ import (
 	"github.com/go-chi/render"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const PROFILE_PICS = "profile-pics"
+const DEFAULT_PIC = "user.png"
 
 func UserDelete(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserKey).(string)
@@ -64,6 +70,80 @@ func AssignRole(w http.ResponseWriter, r *http.Request) {
 	} else {
 		render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 	}
+}
+
+func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
+	max := int64(2 << 20)
+
+	r.Body = http.MaxBytesReader(w, r.Body, max)
+
+	err := r.ParseMultipartForm(max)
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	file, _, err := r.FormFile("img")
+	if err != nil {
+		render.Render(w, r, status.ErrInvalidRequest(err))
+		return
+	}
+	defer file.Close()
+
+	tempFile, err := ioutil.TempFile(PROFILE_PICS, "profile-*.png")
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		os.Remove(tempFile.Name())
+		return
+	}
+
+	fileType := http.DetectContentType(fileBytes)
+
+	if fileType != "image/jpeg" && fileType != "image/png" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid file type.")))
+		os.Remove(tempFile.Name())
+		return
+	}
+
+	_, err = tempFile.Write(fileBytes)
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		os.Remove(tempFile.Name())
+		return
+	}
+
+	userID := r.Context().Value(UserKey).(string)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+
+	userTemp, err := userRepo.GetByID(userID)
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		os.Remove(tempFile.Name())
+		return
+	}
+
+	singleFilename := strings.Split(tempFile.Name(), "/")[1]
+
+	err = userRepo.Update(userID, "image", singleFilename)
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		os.Remove(tempFile.Name())
+		return
+	}
+
+	if userTemp.Image != DEFAULT_PIC {
+		os.Remove(PROFILE_PICS + "/" + userTemp.Image)
+	}
+
+	userTemp.Image = singleFilename
+	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 
 func UserUpdateName(w http.ResponseWriter, r *http.Request) {

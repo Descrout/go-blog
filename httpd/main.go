@@ -85,7 +85,7 @@ func main() {
 					r.Put("/name", handler.UserUpdateName)
 					//r.Put("/password", handler.funcname)
 					//r.Put("/email", handler.funcname)
-					//r.Put("/image", handler.funcname)
+					r.Post("/image", handler.UserUpdateImage)
 					//r.Put("/description", handler.funcname)
 					r.Delete("/", handler.UserDelete)
 				})
@@ -153,7 +153,7 @@ func setupDB(filename string) *sql.DB {
 		"name"	TEXT NOT NULL,
 		"password"	TEXT NOT NULL,
 		"email" TEXT NOT NULL,
-		"image"	TEXT NOT NULL DEFAULT "/images/user.png",
+		"image"	TEXT NOT NULL DEFAULT "user.png",
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
 	CREATE TABLE IF NOT EXISTS "roles" (
