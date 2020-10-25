@@ -87,7 +87,7 @@ func main() {
 					r.Use(jwtauth.Authenticator, handler.UserAuthContext)
 					r.Put("/name", handler.UserUpdateName)
 					r.Put("/password", handler.UserUpdatePassword)
-					//r.Put("/email", handler.UserUpdateEmail)
+					r.Put("/email", handler.UserUpdateEmail)
 					r.Post("/image", handler.UserUpdateImage)
 					r.Delete("/", handler.UserDelete)
 				})

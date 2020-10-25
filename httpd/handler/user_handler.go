@@ -152,6 +152,57 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 
+func UserUpdateEmail(w http.ResponseWriter, r *http.Request) {
+	var password string
+	if password = r.FormValue("password"); password == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing password field")))
+		return
+	}
+
+	var email string
+	if email = r.FormValue("email"); email == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing email field")))
+		return
+	}
+
+	if !user.EmailRegex.MatchString(email) {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid e-mail.")))
+		return
+	}
+
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+
+	exist, err := userRepo.DoesEmailExist(email)
+	if err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+	if exist {
+		render.Render(w, r, status.ErrConflict("Email already registered."))
+		return
+	}
+
+	userID := r.Context().Value(UserKey).(string)
+	tempUser, _ := userRepo.GetByID(userID)
+
+	err = bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(password))
+	if err != nil {
+		render.Render(w, r, status.ErrUnauthorized("Password is wrong."))
+		return
+	}
+
+	if err = userRepo.Update(userID, "email", email); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	tempUser.Email = email
+
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, user.NewUserPayload(tempUser, roleRepo))
+}
+
 func UserUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	var password string
 	if password = r.FormValue("password"); password == "" {
@@ -337,13 +388,13 @@ func UserRegisterPost(w http.ResponseWriter, r *http.Request) {
 
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 
-	if exist, err := repo.DoesEmailExist(userTemp.Email); err == nil {
-		if exist {
-			render.Render(w, r, status.ErrConflict("Email already registered."))
-			return
-		}
-	} else {
+	exist, err := repo.DoesEmailExist(userTemp.Email)
+	if err != nil {
 		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+	if exist {
+		render.Render(w, r, status.ErrConflict("Email already registered."))
 		return
 	}
 
