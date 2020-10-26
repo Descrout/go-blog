@@ -105,7 +105,34 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	return article, err
 }
 
-func (repo *Repo) GetAll(page int) []*Article {
+func (repo *Repo) GetBySearch(keyword string, page int) []*Article {
+	articles := []*Article{}
+
+	keyword = "%" + keyword + "%"
+
+	rows, err := repo.DB.Query(
+		`SELECT * FROM articles 
+		WHERE title LIKE ? OR body LIKE ? 
+		ORDER BY created_at DESC 
+		LIMIT ?, ?`,
+		keyword, keyword,
+		(page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	for rows.Next() {
+		var article Article
+		rows.Scan(&article.ID, &article.User_ID,
+			&article.Title, &article.Body, &article.Created_At, &article.Updated_At)
+		articles = append(articles, &article)
+	}
+
+	return articles
+}
+
+func (repo *Repo) GetByPage(page int) []*Article {
 	articles := []*Article{}
 
 	rows, err := repo.DB.Query(`SELECT * FROM articles ORDER BY created_at DESC LIMIT ?, ?`,

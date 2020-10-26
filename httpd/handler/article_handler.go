@@ -84,12 +84,19 @@ func ArticleGetByID(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, article.NewArticlePayload(articleTemp, userRepo, roleRepo))
 }
 
-func ArticleGetAll(w http.ResponseWriter, r *http.Request) {
+func ArticleGetByPage(w http.ResponseWriter, r *http.Request) {
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 	page := r.Context().Value(PageKey).(int)
-	articles := articleRepo.GetAll(page)
+
+	var articles []*article.Article
+	if search := r.FormValue("search"); search != "" {
+		articles = articleRepo.GetBySearch(search, page)
+	} else {
+		articles = articleRepo.GetByPage(page)
+	}
+
 	render.RenderList(w, r, article.NewArticleListPayload(articles, userRepo, roleRepo))
 }
 
