@@ -20,8 +20,8 @@ import (
 
 const (
 	PROFILE_PICS = "/profile-pics"
-	DEFAULT_PIC  = "user.png"
 	SERVE_PATH   = "/static"
+	DEFAULT_PIC  = PROFILE_PICS + SERVE_PATH + "/user.png"
 )
 
 func UserDelete(w http.ResponseWriter, r *http.Request) {
@@ -135,9 +135,9 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseFilename := filepath.Base(tempFile.Name())
+	imagePath := filepath.Join(SERVE_PATH, PROFILE_PICS, filepath.Base(tempFile.Name()))
 
-	err = userRepo.Update(userID, "image", baseFilename)
+	err = userRepo.Update(userID, "image", imagePath)
 	if err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		os.Remove(tempFile.Name())
@@ -145,10 +145,10 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userTemp.Image != DEFAULT_PIC {
-		os.Remove(filepath.Join(picsDir, userTemp.Image))
+		os.Remove(filepath.Join(workDir, userTemp.Image))
 	}
 
-	userTemp.Image = baseFilename
+	userTemp.Image = imagePath
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 

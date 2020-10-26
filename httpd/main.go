@@ -179,7 +179,7 @@ func setupDB(filename string) *sql.DB {
 		"name"	TEXT NOT NULL,
 		"password"	TEXT NOT NULL,
 		"email" TEXT NOT NULL,
-		"image"	TEXT NOT NULL DEFAULT "user.png",
+		"image"	TEXT NOT NULL DEFAULT "/static/profile-pics/user.png",
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
 	CREATE TABLE IF NOT EXISTS "roles" (
