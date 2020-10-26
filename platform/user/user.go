@@ -13,6 +13,29 @@ var NameRegex = regexp.MustCompile(`^[a-zA-Z]+((([',. -][a-zA-Z ])?[a-zA-Z]){2,2
 var EmailRegex = regexp.MustCompile(`(.+)@(.+){2,}\.(.+){2,}`)
 var PasswordRegex = regexp.MustCompile(`^(\S{6,20})$`)
 
+type UpdatePassword struct {
+	OldPassword string `json:"oldPassword"`
+	Password    string `json:"password"`
+}
+
+func (p *UpdatePassword) Bind(r *http.Request) error {
+	if p.Password == "" {
+		return errors.New("Missing password field")
+	}
+	if p.OldPassword == "" {
+		return errors.New("Missing old password field")
+	}
+	if !PasswordRegex.MatchString(p.Password) {
+		return errors.New("Password requirements does not match.")
+	}
+
+	if p.Password == p.OldPassword {
+		return errors.New("Old password must be different than current password.")
+	}
+
+	return nil
+}
+
 type User struct {
 	ID       int64  `json:"id"`
 	Role_ID  int64  `json:"-"`

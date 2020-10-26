@@ -204,25 +204,10 @@ func UserUpdateEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserUpdatePassword(w http.ResponseWriter, r *http.Request) {
-	var password string
-	if password = r.FormValue("password"); password == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing password field")))
-		return
-	}
+	var data user.UpdatePassword
 
-	if !user.PasswordRegex.MatchString(password) {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Password requirements does not match.")))
-		return
-	}
-
-	var oldPassword string
-	if oldPassword = r.FormValue("oldPassword"); oldPassword == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing old password field")))
-		return
-	}
-
-	if password == oldPassword {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Old password must be different than current password.")))
+	if err := render.Bind(r, &data); err != nil {
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 
@@ -230,20 +215,20 @@ func UserUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	tempUser, _ := userRepo.GetByID(userID)
 
-	err := bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(oldPassword))
+	err := bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(data.OldPassword))
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Current password is wrong."))
 		return
 	}
 
-	if hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost); err == nil {
-		password = string(hashedPassword)
+	if hashedPassword, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost); err == nil {
+		data.Password = string(hashedPassword)
 	} else {
 		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
-	if err = userRepo.Update(userID, "password", password); err != nil {
+	if err = userRepo.Update(userID, "password", data.Password); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
