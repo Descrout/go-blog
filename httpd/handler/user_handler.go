@@ -153,26 +153,16 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserUpdateEmail(w http.ResponseWriter, r *http.Request) {
-	var password string
-	if password = r.FormValue("password"); password == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing password field")))
-		return
-	}
+	var data user.UpdateEmail
 
-	var email string
-	if email = r.FormValue("email"); email == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing email field")))
-		return
-	}
-
-	if !user.EmailRegex.MatchString(email) {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid e-mail.")))
+	if err := render.Bind(r, &data); err != nil {
+		render.Render(w, r, status.ErrInvalidRequest(err))
 		return
 	}
 
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 
-	exist, err := userRepo.DoesEmailExist(email)
+	exist, err := userRepo.DoesEmailExist(data.Email)
 	if err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		return
@@ -185,18 +175,18 @@ func UserUpdateEmail(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserKey).(string)
 	tempUser, _ := userRepo.GetByID(userID)
 
-	err = bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(data.Password))
 	if err != nil {
 		render.Render(w, r, status.ErrUnauthorized("Password is wrong."))
 		return
 	}
 
-	if err = userRepo.Update(userID, "email", email); err != nil {
+	if err = userRepo.Update(userID, "email", data.Email); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
-	tempUser.Email = email
+	tempUser.Email = data.Email
 
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 	render.Status(r, http.StatusOK)
