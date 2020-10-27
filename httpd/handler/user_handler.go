@@ -21,7 +21,7 @@ import (
 const (
 	PROFILE_PICS = "/profile-pics"
 	SERVE_PATH   = "/static"
-	DEFAULT_PIC  = PROFILE_PICS + SERVE_PATH + "/user.png"
+	DEFAULT_PIC  = SERVE_PATH + PROFILE_PICS + "/user.png"
 )
 
 func UserDelete(w http.ResponseWriter, r *http.Request) {
