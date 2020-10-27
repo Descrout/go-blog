@@ -11,10 +11,16 @@ import (
 	"go-blog/platform/user"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
+)
+
+const (
+	TimeFormat    = "02-01-2006" // DD-MM-YYYY
+	DateDelimiter = "|"
 )
 
 type key int
@@ -29,6 +35,7 @@ const (
 	CommentRepoKey key = 6
 	CommentKey     key = 7
 	PageKey        key = 8
+	DatesKey       key = 9
 )
 
 func ProvideCommentRepo(db *sql.DB) func(http.Handler) http.Handler {
@@ -145,15 +152,14 @@ func UserAuthContext(next http.Handler) http.Handler {
 func ArticleIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.Context().Value(ArticleRepoKey).(*article.Repo)
-		var article *article.Article
-		var err error
 
-		if articleID := chi.URLParam(r, "articleID"); articleID != "" {
-			article, err = repo.GetByID(articleID)
-		} else {
+		var articleID string
+		if articleID = chi.URLParam(r, "articleID"); articleID == "" {
 			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing article ID")))
 			return
 		}
+
+		article, err := repo.GetByID(articleID)
 		if err != nil {
 			render.Render(w, r, status.ErrNotFound)
 			return
@@ -178,6 +184,39 @@ func Paginate(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), PageKey, pageNum)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func ParseDate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var from, to int64
+		var err error
+
+		if date := r.FormValue("date"); date != "" {
+			strDates := strings.Split(date, DateDelimiter)
+			if len(strDates) != 2 {
+				render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid date format.")))
+				return
+			}
+
+			if from, err = strconv.ParseInt(strDates[0], 10, 64); err != nil {
+				render.Render(w, r, status.ErrInvalidRequest(err))
+				return
+			}
+
+			if to, err = strconv.ParseInt(strDates[1], 10, 64); err != nil {
+				render.Render(w, r, status.ErrInvalidRequest(err))
+				return
+			}
+
+			if from < 0 || to < from {
+				render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid date format.")))
+				return
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), DatesKey, [2]int64{from, to})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

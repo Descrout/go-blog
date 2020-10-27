@@ -105,43 +105,52 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	return article, err
 }
 
-func (repo *Repo) GetBySearch(keyword string, page int) []*Article {
-	articles := []*Article{}
+func (repo *Repo) GetMultiple(page int, keyword string, dates [2]int64) []*Article {
+	var rows *sql.Rows
+	var err error
+	pFrom, pTo := (page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE
 
-	keyword = "%" + keyword + "%"
+	if dates[1] > 0 {
+		if keyword != "" {
+			keyword = "%" + keyword + "%"
+			rows, err = repo.DB.Query(
+				`SELECT * FROM articles 
+				WHERE created_at >= ? AND created_at <= ? 
+				AND (title LIKE ? OR body LIKE ?) 
+				ORDER BY created_at DESC 
+				LIMIT ?, ?`,
+				dates[0], dates[1],
+				keyword, keyword,
+				pFrom, pTo)
+		} else {
+			rows, err = repo.DB.Query(
+				`SELECT * FROM articles 
+				WHERE created_at >= ? AND created_at <= ? 
+				ORDER BY created_at DESC 
+				LIMIT ?, ?`,
+				dates[0], dates[1],
+				pFrom, pTo)
+		}
+	} else if keyword != "" {
+		keyword = "%" + keyword + "%"
 
-	rows, err := repo.DB.Query(
-		`SELECT * FROM articles 
-		WHERE title LIKE ? OR body LIKE ? 
-		ORDER BY created_at DESC 
-		LIMIT ?, ?`,
-		keyword, keyword,
-		(page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE)
+		rows, err = repo.DB.Query(
+			`SELECT * FROM articles 
+			WHERE title LIKE ? OR body LIKE ? 
+			ORDER BY created_at DESC 
+			LIMIT ?, ?`,
+			keyword, keyword,
+			pFrom, pTo)
+	} else {
+		rows, err = repo.DB.Query(`SELECT * FROM articles ORDER BY created_at DESC LIMIT ?, ?`,
+			pFrom, pTo)
+	}
 
 	if err != nil {
 		log.Println(err)
 	}
 
-	for rows.Next() {
-		var article Article
-		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Body, &article.Created_At, &article.Updated_At)
-		articles = append(articles, &article)
-	}
-
-	return articles
-}
-
-func (repo *Repo) GetByPage(page int) []*Article {
 	articles := []*Article{}
-
-	rows, err := repo.DB.Query(`SELECT * FROM articles ORDER BY created_at DESC LIMIT ?, ?`,
-		(page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE)
-
-	if err != nil {
-		log.Println(err)
-	}
-
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.User_ID,
