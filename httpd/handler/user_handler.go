@@ -259,6 +259,10 @@ func UserUpdateName(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 
+func UserGetArticles(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func UserGetByID(w http.ResponseWriter, r *http.Request) {
 	var userID string
 

@@ -36,6 +36,7 @@ const (
 	CommentKey     key = 7
 	PageKey        key = 8
 	DatesKey       key = 9
+	UserIDKey      key = 10
 )
 
 func ProvideCommentRepo(db *sql.DB) func(http.Handler) http.Handler {

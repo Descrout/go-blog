@@ -91,7 +91,11 @@ func ArticleGetMultiple(w http.ResponseWriter, r *http.Request) {
 	page := r.Context().Value(PageKey).(int)
 	dates := r.Context().Value(DatesKey).([2]int64)
 
-	articles := articleRepo.GetMultiple(page, r.FormValue("search"), dates)
+	search := article.NewSearch()
+	search.QueryDate(dates[0], dates[1])
+	search.QueryKeyword(r.FormValue("search"))
+	search.Limit(page)
+	articles := articleRepo.GetMultiple(search)
 
 	render.RenderList(w, r, article.NewArticleListPayload(articles, userRepo, roleRepo))
 }

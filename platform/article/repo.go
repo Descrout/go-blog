@@ -7,6 +7,52 @@ import (
 
 const ARTICLE_IN_PAGE = 10
 
+type Search struct {
+	query         string
+	params        []interface{}
+	isConditioned bool
+}
+
+func NewSearch() *Search {
+	return &Search{
+		query:         `SELECT * FROM articles `,
+		params:        []interface{}{},
+		isConditioned: false,
+	}
+}
+
+func (s *Search) ApplyCondition() {
+	if s.isConditioned {
+		s.query += `AND `
+	} else {
+		s.query += `WHERE `
+		s.isConditioned = true
+	}
+}
+
+func (s *Search) QueryDate(from int64, to int64) {
+	if to > 0 {
+		s.ApplyCondition()
+		s.query += `created_at >= ? AND created_at <= ? `
+		s.params = append(s.params, from, to)
+	}
+}
+
+func (s *Search) QueryKeyword(keyword string) {
+	if keyword != "" {
+		s.ApplyCondition()
+		keyword = "%" + keyword + "%"
+		s.query += `(title LIKE ? OR body LIKE ?) `
+		s.params = append(s.params, keyword, keyword)
+	}
+}
+
+func (s *Search) Limit(page int) {
+	from := (page - 1) * ARTICLE_IN_PAGE
+	s.query += `ORDER BY created_at DESC LIMIT ?, ?`
+	s.params = append(s.params, from, ARTICLE_IN_PAGE)
+}
+
 type Repo struct {
 	DB *sql.DB
 }
@@ -105,47 +151,8 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	return article, err
 }
 
-func (repo *Repo) GetMultiple(page int, keyword string, dates [2]int64) []*Article {
-	var rows *sql.Rows
-	var err error
-	pFrom, pTo := (page-1)*ARTICLE_IN_PAGE, ARTICLE_IN_PAGE
-
-	if dates[1] > 0 {
-		if keyword != "" {
-			keyword = "%" + keyword + "%"
-			rows, err = repo.DB.Query(
-				`SELECT * FROM articles 
-				WHERE created_at >= ? AND created_at <= ? 
-				AND (title LIKE ? OR body LIKE ?) 
-				ORDER BY created_at DESC 
-				LIMIT ?, ?`,
-				dates[0], dates[1],
-				keyword, keyword,
-				pFrom, pTo)
-		} else {
-			rows, err = repo.DB.Query(
-				`SELECT * FROM articles 
-				WHERE created_at >= ? AND created_at <= ? 
-				ORDER BY created_at DESC 
-				LIMIT ?, ?`,
-				dates[0], dates[1],
-				pFrom, pTo)
-		}
-	} else if keyword != "" {
-		keyword = "%" + keyword + "%"
-
-		rows, err = repo.DB.Query(
-			`SELECT * FROM articles 
-			WHERE title LIKE ? OR body LIKE ? 
-			ORDER BY created_at DESC 
-			LIMIT ?, ?`,
-			keyword, keyword,
-			pFrom, pTo)
-	} else {
-		rows, err = repo.DB.Query(`SELECT * FROM articles ORDER BY created_at DESC LIMIT ?, ?`,
-			pFrom, pTo)
-	}
-
+func (repo *Repo) GetMultiple(search *Search) []*Article {
+	rows, err := repo.DB.Query(search.query, search.params...)
 	if err != nil {
 		log.Println(err)
 	}
