@@ -13,7 +13,7 @@ import (
 type Comment struct {
 	ID         int64  `json:"id"`
 	User_ID    int64  `json:"-"`
-	Article_ID int64  `json:"-"`
+	Article_ID int64  `json:"article_id,omitempty"`
 	Body       string `json:"body"`
 	Created_At int64  `json:"created_at"`
 	Updated_At int64  `json:"updated_at"`
@@ -45,6 +45,7 @@ func NewCommentsOnlyPayload(comments []*Comment) []render.Renderer {
 func NewCommentListPayload(comments []*Comment, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, comment := range comments {
+		comment.Article_ID = 0
 		list = append(list, NewCommentPayload(comment, userRepo, roleRepo))
 	}
 	return list
