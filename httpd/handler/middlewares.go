@@ -82,15 +82,14 @@ func ProvideUserRepo(db *sql.DB) func(http.Handler) http.Handler {
 func RoleIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.Context().Value(RoleRepoKey).(*role.Repo)
-		var role *role.Role
-		var err error
 
-		if roleID := chi.URLParam(r, "roleID"); roleID != "" {
-			role, err = repo.GetByID(roleID)
-		} else {
+		var roleID string
+		if roleID = chi.URLParam(r, "roleID"); roleID == "" {
 			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing role ID")))
 			return
 		}
+
+		role, err := repo.GetByID(roleID)
 		if err != nil {
 			render.Render(w, r, status.ErrNotFound)
 			return
@@ -104,15 +103,14 @@ func RoleIDContext(next http.Handler) http.Handler {
 func CommentIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.Context().Value(CommentRepoKey).(*comment.Repo)
-		var comment *comment.Comment
-		var err error
 
-		if commentID := chi.URLParam(r, "commentID"); commentID != "" {
-			comment, err = repo.GetByID(commentID)
-		} else {
+		var commentID string
+		if commentID = chi.URLParam(r, "commentID"); commentID == "" {
 			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing comment ID")))
 			return
 		}
+
+		comment, err := repo.GetByID(commentID)
 		if err != nil {
 			render.Render(w, r, status.ErrNotFound)
 			return
