@@ -47,6 +47,14 @@ func (s *Search) QueryKeyword(keyword string) {
 	}
 }
 
+func (s *Search) QueryUserID(userID string) {
+	if userID != "" {
+		s.ApplyCondition()
+		s.query += `user_id = ? `
+		s.params = append(s.params, userID)
+	}
+}
+
 func (s *Search) Limit(page int) {
 	from := (page - 1) * ARTICLE_IN_PAGE
 	s.query += `ORDER BY created_at DESC LIMIT ?, ?`

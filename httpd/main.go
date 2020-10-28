@@ -80,7 +80,7 @@ func main() {
 
 			r.Route("/{userID}", func(r chi.Router) {
 				r.Get("/", handler.UserGetByID)
-				r.Get("/articles", handler.UserGetArticles)
+				r.With(handler.Paginate, handler.ParseDate).Get("/articles", handler.UserGetArticles)
 				r.With(jwtauth.Authenticator).Put("/role", handler.AssignRole)
 
 				r.Group(func(r chi.Router) {

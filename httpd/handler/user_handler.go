@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"go-blog/platform/article"
 	"go-blog/platform/role"
 	"go-blog/platform/status"
 	"go-blog/platform/user"
@@ -260,7 +261,25 @@ func UserUpdateName(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserGetArticles(w http.ResponseWriter, r *http.Request) {
+	var userID string
 
+	if userID = chi.URLParam(r, "userID"); userID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
+		return
+	}
+
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	page := r.Context().Value(PageKey).(int)
+	dates := r.Context().Value(DatesKey).([2]int64)
+
+	search := article.NewSearch()
+	search.QueryDate(dates[0], dates[1])
+	search.QueryKeyword(r.FormValue("search"))
+	search.QueryUserID(userID)
+	search.Limit(page)
+	articles := articleRepo.GetMultiple(search)
+
+	render.RenderList(w, r, article.NewArticlesOnlyPayload(articles))
 }
 
 func UserGetByID(w http.ResponseWriter, r *http.Request) {

@@ -34,6 +34,14 @@ func NewArticlePayload(article *Article, userRepo *user.Repo, roleRepo *role.Rep
 	return payload
 }
 
+func NewArticlesOnlyPayload(articles []*Article) []render.Renderer {
+	list := []render.Renderer{}
+	for _, article := range articles {
+		list = append(list, &ArticlePayload{Article: article})
+	}
+	return list
+}
+
 func NewArticleListPayload(articles []*Article, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, article := range articles {
