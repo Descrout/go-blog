@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"go-blog/platform/article"
+	"go-blog/platform/comment"
 	"go-blog/platform/role"
 	"go-blog/platform/status"
 	"go-blog/platform/user"
@@ -258,6 +259,28 @@ func UserUpdateName(w http.ResponseWriter, r *http.Request) {
 
 	render.Status(r, http.StatusOK)
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
+}
+
+func UserGetComments(w http.ResponseWriter, r *http.Request) {
+	var userID string
+
+	if userID = chi.URLParam(r, "userID"); userID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
+		return
+	}
+
+	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
+	page := r.Context().Value(PageKey).(int)
+	dates := r.Context().Value(DatesKey).([2]int64)
+
+	search := comment.NewSearch()
+	search.QueryDate(dates[0], dates[1])
+	search.QueryKeyword(r.FormValue("search"))
+	search.QueryUserID(userID)
+	search.Limit(page)
+	comments := commentRepo.GetMultiple(search)
+
+	render.RenderList(w, r, comment.NewCommentsOnlyPayload(comments))
 }
 
 func UserGetArticles(w http.ResponseWriter, r *http.Request) {

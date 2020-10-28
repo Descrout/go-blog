@@ -5,6 +5,68 @@ import (
 	"log"
 )
 
+const COMMENTS_IN_PAGE = 10
+
+type Search struct {
+	query         string
+	params        []interface{}
+	isConditioned bool
+}
+
+func NewSearch() *Search {
+	return &Search{
+		query:         `SELECT * FROM comments `,
+		params:        []interface{}{},
+		isConditioned: false,
+	}
+}
+
+func (s *Search) ApplyCondition() {
+	if s.isConditioned {
+		s.query += `AND `
+	} else {
+		s.query += `WHERE `
+		s.isConditioned = true
+	}
+}
+
+func (s *Search) QueryDate(from int64, to int64) {
+	if to > 0 {
+		s.ApplyCondition()
+		s.query += `created_at >= ? AND created_at <= ? `
+		s.params = append(s.params, from, to)
+	}
+}
+
+func (s *Search) QueryKeyword(keyword string) {
+	if keyword != "" {
+		s.ApplyCondition()
+		keyword = "%" + keyword + "%"
+		s.query += `body LIKE ? `
+		s.params = append(s.params, keyword)
+	}
+}
+
+func (s *Search) QueryUserID(userID string) {
+	if userID != "" {
+		s.ApplyCondition()
+		s.query += `user_id = ? `
+		s.params = append(s.params, userID)
+	}
+}
+
+func (s *Search) QueryArticleID(articleID int64) {
+	s.ApplyCondition()
+	s.query += `article_id = ? `
+	s.params = append(s.params, articleID)
+}
+
+func (s *Search) Limit(page int) {
+	from := (page - 1) * COMMENTS_IN_PAGE
+	s.query += `ORDER BY created_at DESC LIMIT ?, ?`
+	s.params = append(s.params, from, COMMENTS_IN_PAGE)
+}
+
 type Repo struct {
 	DB *sql.DB
 }
@@ -103,10 +165,10 @@ func (repo *Repo) GetByID(id string) (*Comment, error) {
 	return comment, err
 }
 
-func (repo *Repo) GetAllInArticle(articleID int64) []*Comment {
+func (repo *Repo) GetMultiple(search *Search) []*Comment {
 	comments := []*Comment{}
 
-	rows, err := repo.DB.Query(`SELECT * FROM comments WHERE article_id=?`, articleID)
+	rows, err := repo.DB.Query(search.query, search.params...)
 
 	if err != nil {
 		log.Println(err)

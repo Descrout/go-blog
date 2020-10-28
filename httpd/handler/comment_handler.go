@@ -84,7 +84,17 @@ func CommentsGet(w http.ResponseWriter, r *http.Request) {
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	comments := commentRepo.GetAllInArticle(articleTemp.ID)
+
+	page := r.Context().Value(PageKey).(int)
+	dates := r.Context().Value(DatesKey).([2]int64)
+
+	search := comment.NewSearch()
+	search.QueryDate(dates[0], dates[1])
+	search.QueryKeyword(r.FormValue("search"))
+	search.QueryArticleID(articleTemp.ID)
+	search.Limit(page)
+	comments := commentRepo.GetMultiple(search)
+
 	render.RenderList(w, r, comment.NewCommentListPayload(comments, userRepo, roleRepo))
 }
 

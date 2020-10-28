@@ -34,6 +34,14 @@ func NewCommentPayload(comment *Comment, userRepo *user.Repo, roleRepo *role.Rep
 	return payload
 }
 
+func NewCommentsOnlyPayload(comments []*Comment) []render.Renderer {
+	list := []render.Renderer{}
+	for _, comment := range comments {
+		list = append(list, &CommentPayload{Comment: comment})
+	}
+	return list
+}
+
 func NewCommentListPayload(comments []*Comment, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, comment := range comments {

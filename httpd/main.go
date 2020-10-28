@@ -81,6 +81,7 @@ func main() {
 			r.Route("/{userID}", func(r chi.Router) {
 				r.Get("/", handler.UserGetByID)
 				r.With(handler.Paginate, handler.ParseDate).Get("/articles", handler.UserGetArticles)
+				r.With(handler.Paginate, handler.ParseDate, handler.ProvideCommentRepo(db)).Get("/comments", handler.UserGetComments)
 				r.With(jwtauth.Authenticator).Put("/role", handler.AssignRole)
 
 				r.Group(func(r chi.Router) {
@@ -120,7 +121,7 @@ func main() {
 
 			r.Route("/{articleID}", func(r chi.Router) {
 				r.Use(handler.ArticleIDContext)
-				r.Get("/", handler.CommentsGet)
+				r.With(handler.Paginate, handler.ParseDate).Get("/", handler.CommentsGet)
 				r.With(jwtauth.Authenticator).Post("/", handler.CommentPost)
 			})
 		})
