@@ -71,8 +71,8 @@ func (repo *Repo) DoesEmailExist(email string) (bool, error) {
 func (repo *Repo) Add(user *User) (int64, error) {
 	stmt, err := repo.DB.Prepare(`
 	INSERT INTO 
-	users (name,  password, email) 
-	values (?, ?, ?)`)
+	users (name,  password, email, created_at) 
+	values (?, ?, ?, ?)`)
 
 	if err != nil {
 		log.Println(err)
@@ -81,7 +81,7 @@ func (repo *Repo) Add(user *User) (int64, error) {
 
 	defer stmt.Close()
 
-	result, err := stmt.Exec(user.Name, user.Password, user.Email)
+	result, err := stmt.Exec(user.Name, user.Password, user.Email, user.Created_At)
 	if err != nil {
 		log.Println(err)
 		return 0, err
@@ -109,7 +109,7 @@ func (repo *Repo) GetByEmail(email string) (*User, error) {
 
 	err = stmt.QueryRow(email).Scan(
 		&user.ID, &user.Role_ID, &user.Name, &user.Password,
-		&user.Email, &user.Image)
+		&user.Email, &user.Image, &user.Created_At)
 
 	if err != nil {
 		log.Println(err)
@@ -132,7 +132,7 @@ func (repo *Repo) GetByID(id interface{}) (*User, error) {
 
 	err = stmt.QueryRow(id).Scan(
 		&user.ID, &user.Role_ID, &user.Name, &user.Password,
-		&user.Email, &user.Image)
+		&user.Email, &user.Image, &user.Created_At)
 
 	if err != nil {
 		log.Println(err)
@@ -154,7 +154,7 @@ func (repo *Repo) GetAll() []*User {
 	for rows.Next() {
 		var user User
 		rows.Scan(&user.ID, &user.Role_ID, &user.Name, &user.Password,
-			&user.Email, &user.Image)
+			&user.Email, &user.Image, &user.Created_At)
 		users = append(users, &user)
 	}
 

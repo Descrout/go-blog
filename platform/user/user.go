@@ -5,6 +5,7 @@ import (
 	"go-blog/platform/role"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/go-chi/render"
 )
@@ -55,12 +56,13 @@ func (p *UpdatePassword) Bind(r *http.Request) error {
 }
 
 type User struct {
-	ID       int64  `json:"id"`
-	Role_ID  int64  `json:"-"`
-	Email    string `json:"email,omitempty"`
-	Name     string `json:"name"`
-	Password string `json:"password,omitempty"`
-	Image    string `json:"image,omitempty"`
+	ID         int64  `json:"id"`
+	Role_ID    int64  `json:"-"`
+	Email      string `json:"email,omitempty"`
+	Name       string `json:"name"`
+	Password   string `json:"password,omitempty"`
+	Image      string `json:"image,omitempty"`
+	Created_At int64  `json:"created_at,omitempty"`
 }
 
 type UserPayload struct {
@@ -93,6 +95,7 @@ func (u *UserPayload) Bind(r *http.Request) error {
 		return errors.New("missing required User fields.")
 	}
 	u.Token = ""
+	u.User.Created_At = time.Now().Unix()
 	return nil
 }
 
