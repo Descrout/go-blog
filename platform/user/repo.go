@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"database/sql"
 	"log"
 )
@@ -29,17 +30,45 @@ func (repo *Repo) CheckFavoriteFor(id int64, articleID int64) bool {
 	return err == nil
 }
 
-func (repo *Repo) Delete(id interface{}) error {
-	stmt, err := repo.DB.Prepare("DELETE FROM users WHERE id = ?")
+func (repo *Repo) Delete(id int64) error {
+	ctx := context.Background()
 
+	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	defer stmt.Close()
+	_, err = tx.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
 
-	if _, err = stmt.Exec(id); err != nil {
+	_, err = tx.ExecContext(ctx, "DELETE FROM articles WHERE user_id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "DELETE FROM favorites WHERE user_id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "DELETE FROM comments WHERE user_id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		log.Println(err)
 		return err
 	}
@@ -47,7 +76,7 @@ func (repo *Repo) Delete(id interface{}) error {
 	return nil
 }
 
-func (repo *Repo) Update(id interface{}, field string, value interface{}) error {
+func (repo *Repo) Update(id int64, field string, value interface{}) error {
 	stmt, err := repo.DB.Prepare(`
 	UPDATE users 
 	SET ` + field + `= ?
