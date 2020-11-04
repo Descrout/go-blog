@@ -16,7 +16,10 @@ type Search struct {
 
 func NewSearch() *Search {
 	return &Search{
-		query:         `SELECT *,(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) favCount FROM articles `,
+		query: `SELECT id, user_id,
+		title, created_at, updated_at,
+		(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) favCount 
+		FROM articles `,
 		params:        []interface{}{},
 		isConditioned: false,
 	}
@@ -251,7 +254,7 @@ func (repo *Repo) GetMultiple(search *Search) []*Article {
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Body, &article.Created_At, &article.Updated_At, &article.Favorites)
+			&article.Title, &article.Created_At, &article.Updated_At, &article.Favorites)
 		articles = append(articles, &article)
 	}
 
