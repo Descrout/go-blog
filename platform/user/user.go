@@ -80,8 +80,9 @@ type User struct {
 	Email      string `json:"email,omitempty"`
 	Name       string `json:"name"`
 	Password   string `json:"password,omitempty"`
-	Image      string `json:"image,omitempty"`
-	Created_At int64  `json:"created_at,omitempty"`
+	Image      string `json:"image"`
+	Karma      int64  `json:"karma"`
+	Created_At int64  `json:"created_at"`
 }
 
 type UserPayload struct {

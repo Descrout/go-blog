@@ -76,7 +76,7 @@ func main() {
 		r.Use(jwtauth.Verifier(tokenAuth)) // inits auth but does not check yet
 
 		r.Route("/users", func(r chi.Router) {
-			r.Get("/", handler.UserGetAll)
+			r.With(handler.Paginate, handler.ParseDate).Get("/", handler.UserGetMultiple)
 
 			r.Route("/{userID}", func(r chi.Router) {
 				r.Get("/", handler.UserGetByID)

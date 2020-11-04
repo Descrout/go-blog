@@ -365,10 +365,18 @@ func UserGetByID(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, user.NewUserPayload(userTemp, roleRepo))
 }
 
-func UserGetAll(w http.ResponseWriter, r *http.Request) {
-	repo := r.Context().Value(UserRepoKey).(*user.Repo)
+func UserGetMultiple(w http.ResponseWriter, r *http.Request) {
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	users := repo.GetAll()
+	page := r.Context().Value(PageKey).(int)
+	dates := r.Context().Value(DatesKey).([2]int64)
+
+	search := user.NewSearch()
+	search.QueryDate(dates[0], dates[1])
+	search.QueryKeyword(r.FormValue("search"))
+	search.Limit(page, r.FormValue("sort") == "popular")
+	users := userRepo.GetMultiple(search)
+
 	render.RenderList(w, r, user.NewUserListPayload(users, roleRepo))
 }
 
