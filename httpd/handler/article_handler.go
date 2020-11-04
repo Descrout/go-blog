@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"go-blog/platform/article"
 	"go-blog/platform/role"
 	"go-blog/platform/status"
@@ -41,6 +42,11 @@ func ArticleToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
 	articleID := articleTemp.ID
+
+	if articleTemp.User_ID == claims.UserID {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("You cant like your own article.")))
+		return
+	}
 
 	var favStatus bool
 	var err error
