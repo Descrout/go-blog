@@ -48,6 +48,14 @@ func (s *Search) QueryKeyword(keyword string) {
 	}
 }
 
+func (s *Search) QueryFavoriteBy(userID string) {
+	if userID != "" {
+		s.ApplyCondition()
+		s.query += `id IN (SELECT article_id FROM favorites WHERE user_id = ?) `
+		s.params = append(s.params, userID)
+	}
+}
+
 func (s *Search) QueryUserID(userID string) {
 	if userID != "" {
 		s.ApplyCondition()

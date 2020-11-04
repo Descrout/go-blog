@@ -82,6 +82,7 @@ func main() {
 				r.Get("/", handler.UserGetByID)
 				r.With(handler.Paginate, handler.ParseDate, handler.AuthenticatorPass).Get("/articles", handler.UserGetArticles)
 				r.With(handler.Paginate, handler.ParseDate, handler.ProvideCommentRepo(db)).Get("/comments", handler.UserGetComments)
+				r.With(handler.Paginate, handler.ParseDate, handler.AuthenticatorPass).Get("/favorites", handler.UserGetFavArticles)
 				r.With(handler.AuthenticatorNoPass).Put("/role", handler.AssignRole)
 
 				r.Group(func(r chi.Router) {

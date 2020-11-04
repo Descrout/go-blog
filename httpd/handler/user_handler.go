@@ -291,6 +291,30 @@ func UserGetComments(w http.ResponseWriter, r *http.Request) {
 	render.RenderList(w, r, comment.NewCommentListPayload(comments, nil, nil))
 }
 
+func UserGetFavArticles(w http.ResponseWriter, r *http.Request) {
+	var userID string
+
+	if userID = chi.URLParam(r, "userID"); userID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
+		return
+	}
+
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	page := r.Context().Value(PageKey).(int)
+	dates := r.Context().Value(DatesKey).([2]int64)
+
+	search := article.NewSearch()
+	search.QueryDate(dates[0], dates[1])
+	search.QueryKeyword(r.FormValue("search"))
+	search.QueryFavoriteBy(userID)
+	search.Limit(page, r.FormValue("sort") == "popular")
+	articles := articleRepo.GetMultiple(search)
+
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, nil))
+}
+
 func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	var userID string
 
@@ -302,8 +326,6 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	page := r.Context().Value(PageKey).(int)
 	dates := r.Context().Value(DatesKey).([2]int64)
-	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
 	search := article.NewSearch()
 	search.QueryDate(dates[0], dates[1])
@@ -312,6 +334,8 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	search.Limit(page, r.FormValue("sort") == "popular")
 	articles := articleRepo.GetMultiple(search)
 
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, nil))
 }
 
