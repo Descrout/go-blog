@@ -26,7 +26,7 @@ type ArticlePayload struct {
 	User      *user.UserPayload `json:"user,omitempty"`
 }
 
-func NewArticlePayload(article *Article, claims *user.Claims, userRepo *user.Repo, roleRepo *role.Repo) *ArticlePayload {
+func NewArticlePayload(article *Article, claims user.Claims, userRepo *user.Repo, roleRepo *role.Repo) *ArticlePayload {
 	payload := &ArticlePayload{Article: article}
 	if userRepo != nil {
 		if payload.User == nil && roleRepo != nil {
@@ -35,14 +35,14 @@ func NewArticlePayload(article *Article, claims *user.Claims, userRepo *user.Rep
 			}
 		}
 
-		if claims != nil {
+		if claims.Authenticated {
 			payload.FavStatus = userRepo.CheckFavoriteFor(claims.UserID, article.ID)
 		}
 	}
 	return payload
 }
 
-func NewArticleListPayload(articles []*Article, claims *user.Claims, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
+func NewArticleListPayload(articles []*Article, claims user.Claims, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, article := range articles {
 		list = append(list, NewArticlePayload(article, claims, userRepo, roleRepo))

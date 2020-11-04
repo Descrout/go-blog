@@ -15,14 +15,18 @@ var EmailRegex = regexp.MustCompile(`(.+)@(.+){2,}\.(.+){2,}`)
 var PasswordRegex = regexp.MustCompile(`^(\S{6,20})$`)
 
 type Claims struct {
-	RoleID int64
-	UserID int64
+	Authenticated bool
+	RoleID        int64
+	UserID        int64
 }
 
-func NewClaimsFromMap(jClaims map[string]interface{}) *Claims {
-	return &Claims{
-		RoleID: int64(jClaims["role_id"].(float64)),
-		UserID: int64(jClaims["user_id"].(float64)),
+var NotAuthenticated = Claims{Authenticated: false}
+
+func NewClaimsFromMap(jClaims map[string]interface{}) Claims {
+	return Claims{
+		Authenticated: true,
+		RoleID:        int64(jClaims["role_id"].(float64)),
+		UserID:        int64(jClaims["user_id"].(float64)),
 	}
 }
 

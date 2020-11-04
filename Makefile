@@ -1,7 +1,7 @@
 GPATH=httpd/main.go
 
 build:
-	go build -o bin/main $(GPATH)
+	go build -ldflags "-s -w" -o bin/main $(GPATH)
 
 run:
 	go run $(GPATH)

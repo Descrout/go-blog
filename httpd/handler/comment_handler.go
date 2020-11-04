@@ -15,7 +15,7 @@ func CommentDelete(w http.ResponseWriter, r *http.Request) {
 	commentTemp := r.Context().Value(CommentKey).(*comment.Comment)
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
@@ -56,7 +56,7 @@ func CommentUpdate(w http.ResponseWriter, r *http.Request) {
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
@@ -109,7 +109,7 @@ func CommentPost(w http.ResponseWriter, r *http.Request) {
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	commentTemp.User_ID = claims.UserID
 	tempRole, err := roleRepo.GetByID(claims.RoleID)

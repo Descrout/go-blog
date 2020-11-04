@@ -12,7 +12,7 @@ import (
 func RoleDelete(w http.ResponseWriter, r *http.Request) {
 	roleTemp := r.Context().Value(RoleKey).(*role.Role)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
@@ -40,7 +40,7 @@ func RoleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	roleTemp = rolePayload.Role
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
@@ -80,7 +80,7 @@ func RolePost(w http.ResponseWriter, r *http.Request) {
 
 	roleTemp := data.Role
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
 		render.Render(w, r, status.ErrInternal(err))

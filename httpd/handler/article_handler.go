@@ -16,7 +16,7 @@ func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
 		render.Render(w, r, status.ErrInternal(err))
@@ -39,7 +39,7 @@ func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 func ArticleToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	articleID := articleTemp.ID
 
@@ -64,7 +64,7 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	created_at := articleTemp.Created_At
 
-	articlePayload := article.NewArticlePayload(articleTemp, nil, nil, nil)
+	articlePayload := article.NewArticlePayload(articleTemp, user.NotAuthenticated, nil, nil)
 
 	if err := render.Bind(r, articlePayload); err != nil {
 		render.Render(w, r, status.ErrInvalidRequest(err))
@@ -77,7 +77,7 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
@@ -96,12 +96,12 @@ func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, article.NewArticlePayload(articleTemp, nil, nil, nil))
+	render.Render(w, r, article.NewArticlePayload(articleTemp, user.NotAuthenticated, nil, nil))
 }
 
 func ArticleGetByID(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 	var userRepo *user.Repo
 	var roleRepo *role.Repo
 	userRepo = r.Context().Value(UserRepoKey).(*user.Repo)
@@ -124,7 +124,7 @@ func ArticleGetMultiple(w http.ResponseWriter, r *http.Request) {
 	search.Limit(page, r.FormValue("sort") == "popular")
 	articles := articleRepo.GetMultiple(search)
 
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 
 	if r.FormValue("user") == "0" {
@@ -147,7 +147,7 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	articleTemp.User_ID = claims.UserID
 	tempRole, err := roleRepo.GetByID(claims.RoleID)
@@ -169,5 +169,5 @@ func ArticlePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, article.NewArticlePayload(data.Article, nil, nil, nil))
+	render.Render(w, r, article.NewArticlePayload(data.Article, user.NotAuthenticated, nil, nil))
 }

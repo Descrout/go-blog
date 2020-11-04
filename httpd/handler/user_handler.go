@@ -61,7 +61,7 @@ func AssignRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 
 	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
@@ -311,7 +311,7 @@ func UserGetFavArticles(w http.ResponseWriter, r *http.Request) {
 	articles := articleRepo.GetMultiple(search)
 
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, nil))
 }
 
@@ -335,7 +335,7 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	articles := articleRepo.GetMultiple(search)
 
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
-	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+	claims := r.Context().Value(ClaimsKey).(user.Claims)
 	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, nil))
 }
 

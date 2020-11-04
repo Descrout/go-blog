@@ -150,7 +150,7 @@ func UserSelfID(next http.Handler) http.Handler {
 		}
 
 		roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-		claims := r.Context().Value(ClaimsKey).(*user.Claims)
+		claims := r.Context().Value(ClaimsKey).(user.Claims)
 		userRole, err := roleRepo.GetByID(claims.RoleID)
 		if err != nil {
 			render.Render(w, r, status.ErrInternal(err))
@@ -257,7 +257,7 @@ func AuthenticatorPass(next http.Handler) http.Handler {
 		var ctx context.Context
 
 		if err != nil || token == nil || !token.Valid {
-			ctx = context.WithValue(r.Context(), ClaimsKey, nil)
+			ctx = context.WithValue(r.Context(), ClaimsKey, user.NotAuthenticated)
 		} else {
 			ctx = context.WithValue(r.Context(), ClaimsKey, user.NewClaimsFromMap(claims))
 		}
