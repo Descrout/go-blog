@@ -37,6 +37,7 @@ const (
 	PageKey        key = 8
 	DatesKey       key = 9
 	UserIDKey      key = 10
+	ClaimsKey      key = 11
 )
 
 func ProvideCommentRepo(db *sql.DB) func(http.Handler) http.Handler {
@@ -83,9 +84,15 @@ func RoleIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
-		var roleID string
-		if roleID = chi.URLParam(r, "roleID"); roleID == "" {
-			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing role ID")))
+		var strRoleID string
+		if strRoleID = chi.URLParam(r, "roleID"); strRoleID == "" {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing role ID")))
+			return
+		}
+
+		roleID, err := strconv.ParseInt(strRoleID, 10, 64)
+		if err != nil || roleID < 1 {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid role id.")))
 			return
 		}
 
@@ -104,9 +111,15 @@ func CommentIDContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		repo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 
-		var commentID string
-		if commentID = chi.URLParam(r, "commentID"); commentID == "" {
+		var strCommentID string
+		if strCommentID = chi.URLParam(r, "commentID"); strCommentID == "" {
 			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing comment ID")))
+			return
+		}
+
+		commentID, err := strconv.ParseInt(strCommentID, 10, 64)
+		if err != nil || commentID < 1 {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid comment id.")))
 			return
 		}
 
@@ -121,24 +134,30 @@ func CommentIDContext(next http.Handler) http.Handler {
 	})
 }
 
-func UserAuthContext(next http.Handler) http.Handler {
+func UserSelfID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var userID string
+		var strUserID string
 
-		if userID = chi.URLParam(r, "userID"); userID == "" {
-			render.Render(w, r, status.ErrInvalidRequest(errors.New("missing user ID")))
+		if strUserID = chi.URLParam(r, "userID"); strUserID == "" {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID.")))
+			return
+		}
+
+		userID, err := strconv.ParseInt(strUserID, 10, 64)
+		if err != nil || userID < 1 {
+			render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid user id.")))
 			return
 		}
 
 		roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
-		_, claims, _ := jwtauth.FromContext(r.Context())
-		userRole, err := roleRepo.GetByID(claims["role_id"])
+		claims := r.Context().Value(ClaimsKey).(*user.Claims)
+		userRole, err := roleRepo.GetByID(claims.RoleID)
 		if err != nil {
-			render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+			render.Render(w, r, status.ErrInternal(err))
 			return
 		}
 
-		if userID != strconv.Itoa(int(claims["user_id"].(float64))) && !userRole.Check(role.CanManageOtherUsers) {
+		if userID != claims.UserID && !userRole.Check(role.CanManageOtherUsers) {
 			render.Render(w, r, status.ErrUnauthorized("You are not the user."))
 			return
 		}
@@ -216,6 +235,33 @@ func ParseDate(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), DatesKey, [2]int64{from, to})
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func AuthenticatorNoPass(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, claims, err := jwtauth.FromContext(r.Context())
+		if err != nil || token == nil || !token.Valid {
+			render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+			return
+		}
+		ctx := context.WithValue(r.Context(), ClaimsKey, user.NewClaimsFromMap(claims))
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func AuthenticatorPass(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, claims, err := jwtauth.FromContext(r.Context())
+		var ctx context.Context
+
+		if err != nil || token == nil || !token.Valid {
+			ctx = context.WithValue(r.Context(), ClaimsKey, nil)
+		} else {
+			ctx = context.WithValue(r.Context(), ClaimsKey, user.NewClaimsFromMap(claims))
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

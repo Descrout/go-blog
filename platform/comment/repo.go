@@ -142,7 +142,7 @@ func (repo *Repo) Add(comment *Comment) (int64, error) {
 	return id, err
 }
 
-func (repo *Repo) GetByID(id string) (*Comment, error) {
+func (repo *Repo) GetByID(id int64) (*Comment, error) {
 	comment := &Comment{}
 
 	stmt, err := repo.DB.Prepare("SELECT * FROM comments WHERE ID = ?")

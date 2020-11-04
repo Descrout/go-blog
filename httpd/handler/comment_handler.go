@@ -8,7 +8,6 @@ import (
 	"go-blog/platform/user"
 	"net/http"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 )
 
@@ -16,15 +15,15 @@ func CommentDelete(w http.ResponseWriter, r *http.Request) {
 	commentTemp := r.Context().Value(CommentKey).(*comment.Comment)
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	tempRole, err := roleRepo.GetByID(claims["role_id"])
+	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
-	if commentTemp.User_ID != int64(claims["user_id"].(float64)) &&
+	if commentTemp.User_ID != claims.UserID &&
 		!tempRole.Check(role.CanManageOtherComments) {
 		render.Render(w, r, status.ErrUnauthorized("You are not the owner of this comment."))
 		return
@@ -57,15 +56,15 @@ func CommentUpdate(w http.ResponseWriter, r *http.Request) {
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	tempRole, err := roleRepo.GetByID(claims["role_id"])
+	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
-	if commentTemp.User_ID != int64(claims["user_id"].(float64)) && !tempRole.Check(role.CanManageOtherComments) {
+	if commentTemp.User_ID != claims.UserID && !tempRole.Check(role.CanManageOtherComments) {
 		render.Render(w, r, status.ErrUnauthorized("You are not the owner of this comment."))
 		return
 	}
@@ -110,12 +109,12 @@ func CommentPost(w http.ResponseWriter, r *http.Request) {
 	commentRepo := r.Context().Value(CommentRepoKey).(*comment.Repo)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	commentTemp.User_ID = int64(claims["user_id"].(float64))
-	tempRole, err := roleRepo.GetByID(claims["role_id"])
+	commentTemp.User_ID = claims.UserID
+	tempRole, err := roleRepo.GetByID(claims.RoleID)
 	if err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 

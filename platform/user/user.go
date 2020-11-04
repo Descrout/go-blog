@@ -14,6 +14,25 @@ var NameRegex = regexp.MustCompile(`^[a-zA-Z]+((([',. -][a-zA-Z ])?[a-zA-Z]){2,2
 var EmailRegex = regexp.MustCompile(`(.+)@(.+){2,}\.(.+){2,}`)
 var PasswordRegex = regexp.MustCompile(`^(\S{6,20})$`)
 
+type Claims struct {
+	RoleID int64
+	UserID int64
+}
+
+func NewClaimsFromMap(jClaims map[string]interface{}) *Claims {
+	return &Claims{
+		RoleID: int64(jClaims["role_id"].(float64)),
+		UserID: int64(jClaims["user_id"].(float64)),
+	}
+}
+
+func (c *Claims) toMap() map[string]interface{} {
+	return map[string]interface{}{
+		"role_id": c.RoleID,
+		"user_id": c.UserID,
+	}
+}
+
 type UpdateEmail struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

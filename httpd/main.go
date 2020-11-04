@@ -80,12 +80,12 @@ func main() {
 
 			r.Route("/{userID}", func(r chi.Router) {
 				r.Get("/", handler.UserGetByID)
-				r.With(handler.Paginate, handler.ParseDate).Get("/articles", handler.UserGetArticles)
+				r.With(handler.Paginate, handler.ParseDate, handler.AuthenticatorPass).Get("/articles", handler.UserGetArticles)
 				r.With(handler.Paginate, handler.ParseDate, handler.ProvideCommentRepo(db)).Get("/comments", handler.UserGetComments)
-				r.With(jwtauth.Authenticator).Put("/role", handler.AssignRole)
+				r.With(handler.AuthenticatorNoPass).Put("/role", handler.AssignRole)
 
 				r.Group(func(r chi.Router) {
-					r.Use(jwtauth.Authenticator, handler.UserAuthContext)
+					r.Use(handler.AuthenticatorNoPass, handler.UserSelfID)
 					r.Put("/name", handler.UserUpdateName)
 					r.Put("/password", handler.UserUpdatePassword)
 					r.Put("/email", handler.UserUpdateEmail)
@@ -98,13 +98,13 @@ func main() {
 		r.Route("/roles", func(r chi.Router) {
 			r.Get("/", handler.RoleGetAll)
 
-			r.With(jwtauth.Authenticator).Post("/", handler.RolePost)
+			r.With(handler.AuthenticatorNoPass).Post("/", handler.RolePost)
 
 			r.Route("/{roleID}", func(r chi.Router) {
 				r.Use(handler.RoleIDContext)
 				r.Get("/", handler.RoleGetByID)
-				r.With(jwtauth.Authenticator).Put("/", handler.RoleUpdate)
-				r.With(jwtauth.Authenticator).Delete("/", handler.RoleDelete)
+				r.With(handler.AuthenticatorNoPass).Put("/", handler.RoleUpdate)
+				r.With(handler.AuthenticatorNoPass).Delete("/", handler.RoleDelete)
 			})
 		})
 
@@ -112,7 +112,7 @@ func main() {
 			r.Use(handler.ProvideCommentRepo(db))
 
 			r.Route("/id/{commentID}", func(r chi.Router) {
-				r.Use(jwtauth.Authenticator)
+				r.Use(handler.AuthenticatorNoPass)
 				r.Use(handler.CommentIDContext)
 
 				r.Put("/", handler.CommentUpdate)
@@ -122,20 +122,20 @@ func main() {
 			r.Route("/{articleID}", func(r chi.Router) {
 				r.Use(handler.ArticleIDContext)
 				r.With(handler.Paginate, handler.ParseDate).Get("/", handler.CommentsGet)
-				r.With(jwtauth.Authenticator).Post("/", handler.CommentPost)
+				r.With(handler.AuthenticatorNoPass).Post("/", handler.CommentPost)
 			})
 		})
 
 		r.Route("/articles", func(r chi.Router) {
-			r.With(handler.Paginate, handler.ParseDate).Get("/", handler.ArticleGetMultiple)
-			r.With(jwtauth.Authenticator).Post("/", handler.ArticlePost)
+			r.With(handler.Paginate, handler.ParseDate, handler.AuthenticatorPass).Get("/", handler.ArticleGetMultiple)
+			r.With(handler.AuthenticatorNoPass).Post("/", handler.ArticlePost)
 
 			r.Route("/{articleID}", func(r chi.Router) {
 				r.Use(handler.ArticleIDContext)
-				r.Get("/", handler.ArticleGetByID)
-				r.With(jwtauth.Authenticator).Put("/", handler.ArticleUpdate)
-				r.With(jwtauth.Authenticator).Delete("/", handler.ArticleDelete)
-				r.With(jwtauth.Authenticator).Post("/", handler.ArticleToggleFavorite)
+				r.With(handler.AuthenticatorPass).Get("/", handler.ArticleGetByID)
+				r.With(handler.AuthenticatorNoPass).Put("/", handler.ArticleUpdate)
+				r.With(handler.AuthenticatorNoPass).Delete("/", handler.ArticleDelete)
+				r.With(handler.AuthenticatorNoPass).Post("/", handler.ArticleToggleFavorite)
 
 			})
 		})

@@ -15,6 +15,20 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
+func (repo *Repo) CheckFavoriteFor(id int64, articleID int64) bool {
+	stmt, err := repo.DB.Prepare("SELECT 1 FROM favorites WHERE article_id = ? AND user_id = ?")
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	defer stmt.Close()
+
+	var isFav bool
+	err = stmt.QueryRow(articleID, id).Scan(&isFav)
+
+	return err == nil
+}
+
 func (repo *Repo) Delete(id interface{}) error {
 	stmt, err := repo.DB.Prepare("DELETE FROM users WHERE id = ?")
 
@@ -118,7 +132,7 @@ func (repo *Repo) GetByEmail(email string) (*User, error) {
 	return user, err
 }
 
-func (repo *Repo) GetByID(id interface{}) (*User, error) {
+func (repo *Repo) GetByID(id int64) (*User, error) {
 	user := &User{}
 
 	stmt, err := repo.DB.Prepare("SELECT * FROM users WHERE id = ?")

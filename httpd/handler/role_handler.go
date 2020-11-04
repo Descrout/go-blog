@@ -3,19 +3,19 @@ package handler
 import (
 	"go-blog/platform/role"
 	"go-blog/platform/status"
+	"go-blog/platform/user"
 	"net/http"
 
-	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
 )
 
 func RoleDelete(w http.ResponseWriter, r *http.Request) {
 	roleTemp := r.Context().Value(RoleKey).(*role.Role)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	} else if !userRole.Check(role.CanManageRole) {
 		render.Render(w, r, status.ErrUnauthorized("You are not authorized to manage roles."))
@@ -40,10 +40,10 @@ func RoleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	roleTemp = rolePayload.Role
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	} else if !userRole.Check(role.CanManageRole) {
 		render.Render(w, r, status.ErrUnauthorized("You are not authorized to manage roles."))
@@ -80,10 +80,10 @@ func RolePost(w http.ResponseWriter, r *http.Request) {
 
 	roleTemp := data.Role
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	} else if !userRole.Check(role.CanManageRole) {
 		render.Render(w, r, status.ErrUnauthorized("You are not authorized to manage roles."))

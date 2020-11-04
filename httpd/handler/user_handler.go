@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -27,7 +28,7 @@ const (
 )
 
 func UserDelete(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(UserKey).(string)
+	userID := r.Context().Value(UserKey).(int64)
 	repo := r.Context().Value(UserRepoKey).(*user.Repo)
 
 	if err := repo.Delete(userID); err != nil {
@@ -39,10 +40,16 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func AssignRole(w http.ResponseWriter, r *http.Request) {
-	var userID string
+	var strUserID string
 
-	if userID = chi.URLParam(r, "userID"); userID == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
+	if strUserID = chi.URLParam(r, "userID"); strUserID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID.")))
+		return
+	}
+
+	userID, err := strconv.ParseInt(strUserID, 10, 64)
+	if err != nil || userID < 1 {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid user id.")))
 		return
 	}
 
@@ -54,9 +61,10 @@ func AssignRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	if userRole, err := roleRepo.GetByID(claims["role_id"]); err != nil {
-		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
+
+	if userRole, err := roleRepo.GetByID(claims.RoleID); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
 		return
 	} else if !userRole.Check(role.CanManageRole) {
 		render.Render(w, r, status.ErrUnauthorized("You are not authorized to assign a role."))
@@ -126,7 +134,7 @@ func UserUpdateImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value(UserKey).(string)
+	userID := r.Context().Value(UserKey).(int64)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
@@ -174,7 +182,7 @@ func UserUpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value(UserKey).(string)
+	userID := r.Context().Value(UserKey).(int64)
 	tempUser, _ := userRepo.GetByID(userID)
 
 	err = bcrypt.CompareHashAndPassword([]byte(tempUser.Password), []byte(data.Password))
@@ -203,7 +211,7 @@ func UserUpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value(UserKey).(string)
+	userID := r.Context().Value(UserKey).(int64)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	tempUser, _ := userRepo.GetByID(userID)
 
@@ -231,7 +239,7 @@ func UserUpdatePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserUpdateName(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(UserKey).(string)
+	userID := r.Context().Value(UserKey).(int64)
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
 	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 
@@ -280,7 +288,7 @@ func UserGetComments(w http.ResponseWriter, r *http.Request) {
 	search.Limit(page)
 	comments := commentRepo.GetMultiple(search)
 
-	render.RenderList(w, r, comment.NewCommentsOnlyPayload(comments))
+	render.RenderList(w, r, comment.NewCommentListPayload(comments, nil, nil))
 }
 
 func UserGetArticles(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +302,8 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
 	page := r.Context().Value(PageKey).(int)
 	dates := r.Context().Value(DatesKey).([2]int64)
+	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	claims := r.Context().Value(ClaimsKey).(*user.Claims)
 
 	search := article.NewSearch()
 	search.QueryDate(dates[0], dates[1])
@@ -302,14 +312,20 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	search.Limit(page, r.FormValue("sort") == "popular")
 	articles := articleRepo.GetMultiple(search)
 
-	render.RenderList(w, r, article.NewArticlesOnlyPayload(articles))
+	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, nil))
 }
 
 func UserGetByID(w http.ResponseWriter, r *http.Request) {
-	var userID string
+	var strUserID string
 
-	if userID = chi.URLParam(r, "userID"); userID == "" {
-		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID")))
+	if strUserID = chi.URLParam(r, "userID"); strUserID == "" {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Missing user ID.")))
+		return
+	}
+
+	userID, err := strconv.ParseInt(strUserID, 10, 64)
+	if err != nil || userID < 1 {
+		render.Render(w, r, status.ErrInvalidRequest(errors.New("Invalid user id.")))
 		return
 	}
 
