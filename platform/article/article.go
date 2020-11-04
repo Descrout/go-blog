@@ -15,6 +15,7 @@ type Article struct {
 	User_ID    int64  `json:"-"`
 	Title      string `json:"title"`
 	Body       string `json:"body"`
+	Favorites  int64  `json:"favorites"`
 	Created_At int64  `json:"created_at"`
 	Updated_At int64  `json:"updated_at"`
 }

@@ -299,7 +299,7 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	search.QueryDate(dates[0], dates[1])
 	search.QueryKeyword(r.FormValue("search"))
 	search.QueryUserID(userID)
-	search.Limit(page)
+	search.Limit(page, r.FormValue("sort") == "popular")
 	articles := articleRepo.GetMultiple(search)
 
 	render.RenderList(w, r, article.NewArticlesOnlyPayload(articles))

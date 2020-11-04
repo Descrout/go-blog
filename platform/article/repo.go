@@ -1,6 +1,7 @@
 package article
 
 import (
+	"context"
 	"database/sql"
 	"log"
 )
@@ -15,7 +16,7 @@ type Search struct {
 
 func NewSearch() *Search {
 	return &Search{
-		query:         `SELECT * FROM articles `,
+		query:         `SELECT *,(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) favCount FROM articles `,
 		params:        []interface{}{},
 		isConditioned: false,
 	}
@@ -55,9 +56,16 @@ func (s *Search) QueryUserID(userID string) {
 	}
 }
 
-func (s *Search) Limit(page int) {
+func (s *Search) Limit(page int, popular bool) {
 	from := (page - 1) * ARTICLE_IN_PAGE
-	s.query += `ORDER BY created_at DESC LIMIT ?, ?`
+
+	if popular {
+		s.query += `ORDER BY favCount DESC, created_at DESC `
+	} else {
+		s.query += `ORDER BY created_at DESC `
+	}
+
+	s.query += `LIMIT ?, ?`
 	s.params = append(s.params, from, ARTICLE_IN_PAGE)
 }
 
@@ -71,17 +79,83 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
-func (repo *Repo) Delete(id int64) error {
-	stmt, err := repo.DB.Prepare("DELETE FROM articles WHERE id = ?")
+func (repo *Repo) ToggleFavoriteFor(id int64, userID int64) (bool, error) {
+	ctx := context.Background()
 
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+
+	row := tx.QueryRowContext(ctx, "SELECT 1 FROM favorites WHERE article_id = ? AND user_id = ?", id, userID)
+
+	var favStatus bool
+
+	switch err = row.Scan(&favStatus); err {
+	case sql.ErrNoRows: // Did not favorited yet.
+		_, err = tx.ExecContext(ctx, "INSERT INTO favorites (article_id, user_id) VALUES (?, ?)", id, userID)
+		if err != nil {
+			log.Println(err)
+			tx.Rollback()
+			return false, err
+		}
+		favStatus = true
+	case nil: // Already favorited.
+		_, err = tx.ExecContext(ctx, "DELETE FROM favorites WHERE article_id = ? AND user_id = ?", id, userID)
+		if err != nil {
+			log.Println(err)
+			tx.Rollback()
+			return false, err
+		}
+		favStatus = false
+	default: // Query error
+		log.Println(err)
+		tx.Rollback()
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+
+	return favStatus, nil
+}
+
+func (repo *Repo) Delete(id int64) error {
+	ctx := context.Background()
+
+	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	defer stmt.Close()
+	_, err = tx.ExecContext(ctx, "DELETE FROM articles WHERE id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
 
-	if _, err = stmt.Exec(id); err != nil {
+	_, err = tx.ExecContext(ctx, "DELETE FROM favorites WHERE article_id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "DELETE FROM comments WHERE article_id = ?", id)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		log.Println(err)
 		return err
 	}
@@ -139,7 +213,7 @@ func (repo *Repo) Add(article *Article) (int64, error) {
 func (repo *Repo) GetByID(id string) (*Article, error) {
 	article := &Article{}
 
-	stmt, err := repo.DB.Prepare("SELECT * FROM articles WHERE ID = ?")
+	stmt, err := repo.DB.Prepare("SELECT *,(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) favCount FROM articles WHERE id = ?")
 
 	if err != nil {
 		log.Println(err)
@@ -149,7 +223,7 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	defer stmt.Close()
 
 	err = stmt.QueryRow(id).Scan(&article.ID, &article.User_ID,
-		&article.Title, &article.Body, &article.Created_At, &article.Updated_At)
+		&article.Title, &article.Body, &article.Created_At, &article.Updated_At, &article.Favorites)
 
 	if err != nil {
 		log.Println(err)
@@ -169,7 +243,7 @@ func (repo *Repo) GetMultiple(search *Search) []*Article {
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Body, &article.Created_At, &article.Updated_At)
+			&article.Title, &article.Body, &article.Created_At, &article.Updated_At, &article.Favorites)
 		articles = append(articles, &article)
 	}
 

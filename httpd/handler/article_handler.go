@@ -36,6 +36,27 @@ func ArticleDelete(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, status.DelSuccess())
 }
 
+func ArticleToggleFavorite(w http.ResponseWriter, r *http.Request) {
+	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
+	articleRepo := r.Context().Value(ArticleRepoKey).(*article.Repo)
+	_, claims, err := jwtauth.FromContext(r.Context())
+	if err != nil {
+		render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
+		return
+	}
+	userID := int64(claims["user_id"].(float64))
+	articleID := articleTemp.ID
+
+	var favStatus bool
+	if favStatus, err = articleRepo.ToggleFavoriteFor(articleID, userID); err != nil {
+		render.Render(w, r, status.ErrInternal(err))
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, map[string]bool{"favStatus": favStatus})
+}
+
 func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
 	articleTemp := r.Context().Value(ArticleKey).(*article.Article)
 
@@ -94,7 +115,7 @@ func ArticleGetMultiple(w http.ResponseWriter, r *http.Request) {
 	search := article.NewSearch()
 	search.QueryDate(dates[0], dates[1])
 	search.QueryKeyword(r.FormValue("search"))
-	search.Limit(page)
+	search.Limit(page, r.FormValue("sort") == "popular")
 	articles := articleRepo.GetMultiple(search)
 
 	render.RenderList(w, r, article.NewArticleListPayload(articles, userRepo, roleRepo))

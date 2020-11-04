@@ -135,6 +135,8 @@ func main() {
 				r.Get("/", handler.ArticleGetByID)
 				r.With(jwtauth.Authenticator).Put("/", handler.ArticleUpdate)
 				r.With(jwtauth.Authenticator).Delete("/", handler.ArticleDelete)
+				r.With(jwtauth.Authenticator).Post("/", handler.ArticleToggleFavorite)
+
 			})
 		})
 	})
@@ -204,6 +206,12 @@ func setupDB(filename string) *sql.DB {
 		"body"	TEXT,
 		"created_at"	INTEGER NOT NULL,
 		"updated_at"	INTEGER NOT NULL,
+		PRIMARY KEY("id" AUTOINCREMENT)
+	);
+	CREATE TABLE IF NOT EXISTS "favorites" (
+		"id"	INTEGER NOT NULL UNIQUE,
+		"user_id"	INTEGER,
+		"article_id"	INTEGER,
 		PRIMARY KEY("id" AUTOINCREMENT)
 	);
 	REPLACE INTO roles (id, name) values (1, "Guest");
