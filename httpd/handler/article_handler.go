@@ -121,7 +121,7 @@ func ArticleGetMultiple(w http.ResponseWriter, r *http.Request) {
 	search := article.NewSearch()
 	search.QueryDate(dates[0], dates[1])
 	search.QueryKeyword(r.FormValue("search"))
-	search.Limit(page, r.FormValue("sort") == "popular")
+	search.Limit(page, r.FormValue("sort"))
 	articles := articleRepo.GetMultiple(search)
 
 	claims := r.Context().Value(ClaimsKey).(user.Claims)

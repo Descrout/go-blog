@@ -11,13 +11,14 @@ import (
 )
 
 type Article struct {
-	ID         int64  `json:"id"`
-	User_ID    int64  `json:"-"`
-	Title      string `json:"title"`
-	Body       string `json:"body,omitempty"`
-	Created_At int64  `json:"created_at"`
-	Updated_At int64  `json:"updated_at"`
-	Favorites  int64  `json:"favorites"`
+	ID            int64  `json:"id"`
+	User_ID       int64  `json:"-"`
+	Title         string `json:"title"`
+	Body          string `json:"body,omitempty"`
+	Created_At    int64  `json:"created_at"`
+	Updated_At    int64  `json:"updated_at"`
+	Comment_Count int64  `json:"comment_count"`
+	Favorites     int64  `json:"favorites"`
 }
 
 type ArticlePayload struct {

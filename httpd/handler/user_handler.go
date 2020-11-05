@@ -307,7 +307,7 @@ func UserGetFavArticles(w http.ResponseWriter, r *http.Request) {
 	search.QueryDate(dates[0], dates[1])
 	search.QueryKeyword(r.FormValue("search"))
 	search.QueryFavoriteBy(userID)
-	search.Limit(page, r.FormValue("sort") == "popular")
+	search.Limit(page, r.FormValue("sort"))
 	articles := articleRepo.GetMultiple(search)
 
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
@@ -331,7 +331,7 @@ func UserGetArticles(w http.ResponseWriter, r *http.Request) {
 	search.QueryDate(dates[0], dates[1])
 	search.QueryKeyword(r.FormValue("search"))
 	search.QueryUserID(userID)
-	search.Limit(page, r.FormValue("sort") == "popular")
+	search.Limit(page, r.FormValue("sort"))
 	articles := articleRepo.GetMultiple(search)
 
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)

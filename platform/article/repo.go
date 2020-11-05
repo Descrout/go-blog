@@ -18,7 +18,8 @@ func NewSearch() *Search {
 	return &Search{
 		query: `SELECT id, user_id,
 		title, created_at, updated_at,
-		(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) favCount 
+		(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) fav_count,
+		(SELECT COUNT(id) FROM comments WHERE article_id = articles.id) comment_count 
 		FROM articles `,
 		params:        []interface{}{},
 		isConditioned: false,
@@ -67,12 +68,15 @@ func (s *Search) QueryUserID(userID string) {
 	}
 }
 
-func (s *Search) Limit(page int, popular bool) {
+func (s *Search) Limit(page int, sort string) {
 	from := (page - 1) * ARTICLE_IN_PAGE
 
-	if popular {
-		s.query += `ORDER BY favCount DESC, created_at DESC `
-	} else {
+	switch sort {
+	case "popular":
+		s.query += `ORDER BY fav_count DESC, comment_count DESC `
+	case "comment":
+		s.query += `ORDER BY comment_count DESC, fav_count DESC `
+	default:
 		s.query += `ORDER BY created_at DESC `
 	}
 
@@ -224,7 +228,10 @@ func (repo *Repo) Add(article *Article) (int64, error) {
 func (repo *Repo) GetByID(id string) (*Article, error) {
 	article := &Article{}
 
-	stmt, err := repo.DB.Prepare("SELECT *,(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) favCount FROM articles WHERE id = ?")
+	stmt, err := repo.DB.Prepare(`SELECT *,
+	(SELECT COUNT(id) FROM favorites WHERE article_id = articles.id) fav_count,
+	(SELECT COUNT(id) FROM comments WHERE article_id = articles.id) comment_count 
+	FROM articles WHERE id = ?`)
 
 	if err != nil {
 		log.Println(err)
@@ -234,7 +241,8 @@ func (repo *Repo) GetByID(id string) (*Article, error) {
 	defer stmt.Close()
 
 	err = stmt.QueryRow(id).Scan(&article.ID, &article.User_ID,
-		&article.Title, &article.Body, &article.Created_At, &article.Updated_At, &article.Favorites)
+		&article.Title, &article.Body, &article.Created_At, &article.Updated_At,
+		&article.Favorites, &article.Comment_Count)
 
 	if err != nil {
 		log.Println(err)
@@ -254,7 +262,8 @@ func (repo *Repo) GetMultiple(search *Search) []*Article {
 	for rows.Next() {
 		var article Article
 		rows.Scan(&article.ID, &article.User_ID,
-			&article.Title, &article.Created_At, &article.Updated_At, &article.Favorites)
+			&article.Title, &article.Created_At, &article.Updated_At,
+			&article.Favorites, &article.Comment_Count)
 		articles = append(articles, &article)
 	}
 
