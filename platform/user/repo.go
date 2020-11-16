@@ -73,6 +73,20 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
+func (repo *Repo) CheckCommentFor(id int64, articleID int64) bool {
+	stmt, err := repo.DB.Prepare("SELECT 1 FROM comments WHERE article_id = ? AND user_id = ?")
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	defer stmt.Close()
+
+	var isCommented bool
+	err = stmt.QueryRow(articleID, id).Scan(&isCommented)
+
+	return err == nil
+}
+
 func (repo *Repo) CheckFavoriteFor(id int64, articleID int64) bool {
 	stmt, err := repo.DB.Prepare("SELECT 1 FROM favorites WHERE article_id = ? AND user_id = ?")
 	if err != nil {

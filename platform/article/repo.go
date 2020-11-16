@@ -94,13 +94,13 @@ func NewRepo(db *sql.DB) *Repo {
 	}
 }
 
-func (repo *Repo) ToggleFavoriteFor(id int64, userID int64) (bool, error) {
+func (repo *Repo) ToggleFavoriteFor(id int64, userID int64) (bool, int, error) {
 	ctx := context.Background()
 
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		log.Println(err)
-		return false, err
+		return false, 0, err
 	}
 
 	row := tx.QueryRowContext(ctx, "SELECT 1 FROM favorites WHERE article_id = ? AND user_id = ?", id, userID)
@@ -113,7 +113,7 @@ func (repo *Repo) ToggleFavoriteFor(id int64, userID int64) (bool, error) {
 		if err != nil {
 			log.Println(err)
 			tx.Rollback()
-			return false, err
+			return false, 0, err
 		}
 		favStatus = true
 	case nil: // Already favorited.
@@ -121,22 +121,30 @@ func (repo *Repo) ToggleFavoriteFor(id int64, userID int64) (bool, error) {
 		if err != nil {
 			log.Println(err)
 			tx.Rollback()
-			return false, err
+			return false, 0, err
 		}
 		favStatus = false
 	default: // Query error
 		log.Println(err)
 		tx.Rollback()
-		return false, err
+		return false, 0, err
+	}
+
+	var favCount int
+	err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM favorites WHERE article_id = ?", id).Scan(&favCount)
+	if err != nil {
+		log.Println(err)
+		tx.Rollback()
+		return false, 0, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		log.Println(err)
-		return false, err
+		return false, 0, err
 	}
 
-	return favStatus, nil
+	return favStatus, favCount, nil
 }
 
 func (repo *Repo) Delete(id int64) error {

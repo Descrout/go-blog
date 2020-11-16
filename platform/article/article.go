@@ -23,8 +23,9 @@ type Article struct {
 
 type ArticlePayload struct {
 	*Article
-	FavStatus bool              `json:"fav_status"`
-	User      *user.UserPayload `json:"user,omitempty"`
+	FavStatus     bool              `json:"fav_status"`
+	CommentStatus bool              `json:"comment_status"`
+	User          *user.UserPayload `json:"user,omitempty"`
 }
 
 func NewArticlePayload(article *Article, claims user.Claims, userRepo *user.Repo, roleRepo *role.Repo) *ArticlePayload {
@@ -38,6 +39,7 @@ func NewArticlePayload(article *Article, claims user.Claims, userRepo *user.Repo
 
 		if claims.Authenticated {
 			payload.FavStatus = userRepo.CheckFavoriteFor(claims.UserID, article.ID)
+			payload.CommentStatus = userRepo.CheckCommentFor(claims.UserID, article.ID)
 		}
 	}
 	return payload

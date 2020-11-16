@@ -49,14 +49,15 @@ func ArticleToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var favStatus bool
+	var favCount int
 	var err error
-	if favStatus, err = articleRepo.ToggleFavoriteFor(articleID, claims.UserID); err != nil {
+	if favStatus, favCount, err = articleRepo.ToggleFavoriteFor(articleID, claims.UserID); err != nil {
 		render.Render(w, r, status.ErrInternal(err))
 		return
 	}
 
 	render.Status(r, http.StatusOK)
-	render.JSON(w, r, map[string]bool{"fav_status": favStatus})
+	render.JSON(w, r, map[string]interface{}{"fav_status": favStatus, "fav_count": favCount})
 }
 
 func ArticleUpdate(w http.ResponseWriter, r *http.Request) {
