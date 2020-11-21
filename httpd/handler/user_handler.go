@@ -311,8 +311,9 @@ func UserGetFavArticles(w http.ResponseWriter, r *http.Request) {
 	articles := articleRepo.GetMultiple(search)
 
 	userRepo := r.Context().Value(UserRepoKey).(*user.Repo)
+	roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 	claims := r.Context().Value(ClaimsKey).(user.Claims)
-	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, nil))
+	render.RenderList(w, r, article.NewArticleListPayload(articles, claims, userRepo, roleRepo))
 }
 
 func UserGetArticles(w http.ResponseWriter, r *http.Request) {
