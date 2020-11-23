@@ -34,10 +34,12 @@ func NewCommentPayload(comment *Comment, userRepo *user.Repo, roleRepo *role.Rep
 	return payload
 }
 
-func NewCommentListPayload(comments []*Comment, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
+func NewCommentListPayload(comments []*Comment, includeArticleID bool, userRepo *user.Repo, roleRepo *role.Repo) []render.Renderer {
 	list := []render.Renderer{}
 	for _, comment := range comments {
-		comment.Article_ID = 0
+		if !includeArticleID {
+			comment.Article_ID = 0
+		}
 		list = append(list, NewCommentPayload(comment, userRepo, roleRepo))
 	}
 	return list

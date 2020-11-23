@@ -108,7 +108,7 @@ func CommentsGet(w http.ResponseWriter, r *http.Request) {
 	search.Limit(page)
 	comments := commentRepo.GetMultiple(search)
 
-	render.RenderList(w, r, comment.NewCommentListPayload(comments, userRepo, roleRepo))
+	render.RenderList(w, r, comment.NewCommentListPayload(comments, false, userRepo, roleRepo))
 }
 
 func CommentPost(w http.ResponseWriter, r *http.Request) {

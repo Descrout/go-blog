@@ -288,7 +288,7 @@ func UserGetComments(w http.ResponseWriter, r *http.Request) {
 	search.Limit(page)
 	comments := commentRepo.GetMultiple(search)
 
-	render.RenderList(w, r, comment.NewCommentListPayload(comments, nil, nil))
+	render.RenderList(w, r, comment.NewCommentListPayload(comments, true, nil, nil))
 }
 
 func UserGetFavArticles(w http.ResponseWriter, r *http.Request) {
