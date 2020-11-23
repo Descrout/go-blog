@@ -113,11 +113,10 @@ func main() {
 			r.Use(handler.ProvideCommentRepo(db))
 
 			r.Route("/id/{commentID}", func(r chi.Router) {
-				r.Use(handler.AuthenticatorNoPass)
 				r.Use(handler.CommentIDContext)
-
-				r.Put("/", handler.CommentUpdate)
-				r.Delete("/", handler.CommentDelete)
+				r.Get("/", handler.CommentGetByID)
+				r.With(handler.AuthenticatorNoPass).Put("/", handler.CommentUpdate)
+				r.With(handler.AuthenticatorNoPass).Delete("/", handler.CommentDelete)
 			})
 
 			r.Route("/{articleID}", func(r chi.Router) {

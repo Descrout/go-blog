@@ -37,6 +37,20 @@ func CommentDelete(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, status.DelSuccess())
 }
 
+func CommentGetByID(w http.ResponseWriter, r *http.Request) {
+	commentTemp := r.Context().Value(CommentKey).(*comment.Comment)
+	var userRepo *user.Repo
+	var roleRepo *role.Repo
+
+	if r.FormValue("user") != "0" {
+		userRepo = r.Context().Value(UserRepoKey).(*user.Repo)
+		roleRepo = r.Context().Value(RoleRepoKey).(*role.Repo)
+	}
+
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, comment.NewCommentPayload(commentTemp, userRepo, roleRepo))
+}
+
 func CommentUpdate(w http.ResponseWriter, r *http.Request) {
 	commentTemp := r.Context().Value(CommentKey).(*comment.Comment)
 
