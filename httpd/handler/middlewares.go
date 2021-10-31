@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
@@ -242,7 +243,7 @@ func ParseDate(next http.Handler) http.Handler {
 func AuthenticatorNoPass(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, claims, err := jwtauth.FromContext(r.Context())
-		if err != nil || token == nil || !token.Valid {
+		if err != nil || token == nil || jwt.Validate(token) != nil {
 			render.Render(w, r, status.ErrUnauthorized("Incorrect token."))
 			return
 		}
@@ -256,7 +257,7 @@ func AuthenticatorPass(next http.Handler) http.Handler {
 		token, claims, err := jwtauth.FromContext(r.Context())
 		var ctx context.Context
 
-		if err != nil || token == nil || !token.Valid {
+		if err != nil || token == nil || jwt.Validate(token) != nil {
 			ctx = context.WithValue(r.Context(), ClaimsKey, user.NotAuthenticated)
 		} else {
 			ctx = context.WithValue(r.Context(), ClaimsKey, user.NewClaimsFromMap(claims))

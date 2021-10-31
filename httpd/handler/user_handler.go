@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/jwtauth"
 	"github.com/go-chi/render"
@@ -415,7 +414,7 @@ func UserLoginPost(tokenAuth *jwtauth.JWTAuth) http.HandlerFunc {
 
 		roleRepo := r.Context().Value(RoleRepoKey).(*role.Repo)
 		userData := user.NewUserPayload(resultUser, roleRepo)
-		claims := jwt.MapClaims{"user_id": userData.ID, "role_id": userData.Role_ID}
+		claims := map[string]interface{}{"user_id": userData.ID, "role_id": userData.Role_ID}
 
 		var expiration time.Time
 
